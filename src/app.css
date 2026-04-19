@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+@theme {
+  --color-border: hsl(var(--border));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-surface: hsl(var(--surface));
+  --color-accent: hsl(var(--accent));
+}
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 220 20% 10%;
+    --border: 220 15% 75%;
+    --surface: 0 0% 100%;
+    --accent: 220 90% 45%;
+  }
+  .dark {
+    --background: 220 20% 7%;
+    --foreground: 0 0% 100%;
+    --border: 220 15% 25%;
+    --surface: 220 18% 12%;
+    --accent: 210 100% 60%;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border) / 0.6);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border));
+  }
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border) / 0.6) transparent;
+  }
+}
+body {
+  @apply bg-background text-foreground antialiased;
+}
+*:focus-visible {
+  @apply outline-2 outline-offset-2 outline-accent;
+}

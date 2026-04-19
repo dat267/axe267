@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Explicitly allow authenticated users to list at the books root
+    match /books {
+      allow read, list: if request.auth != null;
+    }
+
+    // Recursively allow reading and listing for all content inside /books
+    match /books/{allPaths=**} {
+      allow read, list: if request.auth != null;
+      
+      // Only admins can upload or delete (Admin check via Firestore)
+      allow write: if request.auth != null && 
+                   firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}

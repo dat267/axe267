@@ -6,7 +6,8 @@ locals {
     "cloudbuild.googleapis.com",
     "artifactregistry.googleapis.com",
     "apikeys.googleapis.com",
-    "secretmanager.googleapis.com"
+    "secretmanager.googleapis.com",
+    "identitytoolkit.googleapis.com"
   ]
 }
 
@@ -367,4 +368,32 @@ resource "terraform_data" "execute_webhook" {
   depends_on = [
     time_sleep.wait_for_propagation
   ]
+}
+
+resource "google_identity_platform_config" "auth" {
+  project = var.project_id
+
+  sign_in {
+    allow_duplicate_emails = false
+    email {
+      enabled           = true
+      password_required = true
+    }
+  }
+
+  depends_on = [google_project_service.services]
+}
+
+resource "google_apikeys_key" "frontend_auth_key" {
+  name         = "frontend-auth-key-${random_id.key_suffix.hex}"
+  display_name = "Frontend Auth API Key"
+  project      = var.project_id
+
+  restrictions {
+    api_targets {
+      service = "identitytoolkit.googleapis.com"
+    }
+  }
+
+  depends_on = [google_project_service.services]
 }

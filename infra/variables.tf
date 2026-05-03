@@ -26,6 +26,10 @@ variable "cloudbuild_repository_name" {
   type = string
 }
 
+variable "initial_admin_email" {
+  type = string
+}
+
 variable "tailscale_auth_key" {
   type      = string
   sensitive = true

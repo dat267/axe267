@@ -15,6 +15,9 @@ jobs:
         uses: actions/setup-node@v6
 
       - name: Install and Build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
           cd frontend
           npm install

@@ -9,6 +9,7 @@ locals {
     "secretmanager.googleapis.com",
     "identitytoolkit.googleapis.com"
   ]
+  backend_hash = sha1(join("", [for f in fileset("${path.module}/../backend", "**") : filesha1("${path.module}/../backend/${f}")]))
 }
 
 data "google_project" "project" {}
@@ -70,6 +71,12 @@ resource "google_storage_bucket_iam_member" "storage_admin_binding" {
   bucket = google_storage_bucket.gsb1.name
   role   = "roles/storage.objectAdmin"
   member = "serviceAccount:${google_service_account.storage_manager.email}"
+}
+
+resource "google_project_iam_member" "firebase_admin" {
+  project = var.project_id
+  role    = "roles/firebaseauth.admin"
+  member  = "serviceAccount:${google_service_account.storage_manager.email}"
 }
 
 resource "google_compute_instance" "gci1" {
@@ -185,6 +192,11 @@ resource "google_cloud_run_v2_service" "gcr1" {
 
     containers {
       image = "us-docker.pkg.dev/cloudrun/container/hello"
+
+      env {
+        name  = "INITIAL_ADMIN_EMAIL"
+        value = var.initial_admin_email
+      }
 
       resources {
         limits = {
@@ -353,7 +365,7 @@ resource "time_sleep" "wait_for_propagation" {
 
 resource "terraform_data" "execute_webhook" {
   triggers_replace = [
-    timestamp()
+    local.backend_hash
   ]
 
   provisioner "local-exec" {

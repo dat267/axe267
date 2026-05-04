@@ -239,6 +239,7 @@ func verifyAdminCount(targetUID string) error {
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
+	isDirReq := strings.HasSuffix(r.URL.Path, "/")
 	reqPath := filepath.Clean(r.URL.Path)
 	fullPath := filepath.Join(gcsPath, reqPath)
 	if !strings.HasPrefix(fullPath, gcsPath) {
@@ -258,7 +259,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		serveRead(w, r, reqPath, fullPath, token != nil)
 	case http.MethodPut:
-		serveWrite(w, r.Body, fullPath)
+		serveWrite(w, r.Body, fullPath, isDirReq)
 	case http.MethodPost:
 		serveMultipartUpload(w, r, fullPath)
 	case http.MethodDelete:
@@ -300,7 +301,19 @@ func serveRead(w http.ResponseWriter, r *http.Request, reqPath, fullPath string,
 	sendJSON(w, http.StatusOK, map[string]interface{}{"path": reqPath, "files": entries})
 }
 
-func serveWrite(w http.ResponseWriter, src io.Reader, dest string) {
+func serveWrite(w http.ResponseWriter, src io.Reader, dest string, isDir bool) {
+	if isDir {
+		if err := os.MkdirAll(dest, 0755); err != nil {
+			sendError(w, http.StatusInternalServerError, "Directory creation failed")
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
+		sendError(w, http.StatusInternalServerError, "Parent directory creation failed")
+		return
+	}
 	dst, err := os.Create(dest)
 	if err != nil {
 		sendError(w, http.StatusInternalServerError, "Write failed")
@@ -325,7 +338,7 @@ func serveMultipartUpload(w http.ResponseWriter, r *http.Request, fullPath strin
 		return
 	}
 	defer file.Close()
-	serveWrite(w, file, filepath.Join(fullPath, header.Filename))
+	serveWrite(w, file, filepath.Join(fullPath, header.Filename), false)
 }
 
 func serveDelete(w http.ResponseWriter, fullPath string) {

@@ -1,5 +1,5 @@
 <script lang="ts">
-  let { code } = $props<{ code: string }>();
+  let { code, onCopy } = $props<{ code: string; onCopy?: () => void }>();
   let copied = $state(false);
 
   async function copyToClipboard() {
@@ -15,6 +15,7 @@
         await navigator.clipboard.writeText(code);
       }
       copied = true;
+      onCopy?.();
       setTimeout(() => copied = false, 2000);
     } catch (err) {
       console.error('Failed to copy code: ', err);
@@ -27,7 +28,7 @@
     <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Bash / Curl</span>
     <button 
       onclick={copyToClipboard}
-      class="flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors {copied ? 'text-green-500' : 'text-gray-400 hover:text-white hover:bg-white/5'}"
+      class="flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors {copied ? 'text-emerald-500' : 'text-gray-400 hover:text-white hover:bg-white/5'}"
     >
       {#if copied}
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>

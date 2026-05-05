@@ -11,17 +11,17 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222.2 84% 4.9%;
-    --border: 214.3 31.8% 91.4%;
+    --background: 0 0% 98%;
+    --foreground: 220 10% 10%;
+    --border: 220 10% 90%;
     --surface: 0 0% 100%;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --border: 217 32% 17%;
-    --surface: 222 47% 14%;
+    --background: 220 10% 10%;
+    --foreground: 0 0% 95%;
+    --border: 220 10% 20%;
+    --surface: 220 10% 13%;
   }
 }
 

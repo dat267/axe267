@@ -41,7 +41,7 @@ const authenticate = async (req: AuthRequest, res: Response, next: NextFunction)
         email: keyData.userEmail,
         // Mock other fields required by admin.auth.DecodedIdToken if necessary
       } as admin.auth.DecodedIdToken;
-      
+
       return next();
     } catch (error) {
       console.error("Error verifying API key:", error);

@@ -1,12 +1,13 @@
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  onSnapshot, 
-  deleteDoc, 
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  deleteDoc,
   doc,
+  limit,
   serverTimestamp,
   type Timestamp
 } from "firebase/firestore";
@@ -45,11 +46,16 @@ export async function pushNotification(data: Omit<Notification, 'id' | 'createdA
 /**
  * Subscribes to notifications for a specific user.
  */
-export function subscribeNotifications(userEmail: string, callback: (notifications: Notification[]) => void) {
+export function subscribeNotifications(
+  userEmail: string, 
+  callback: (notifications: Notification[]) => void,
+  limitCount: number = 20
+) {
   const q = query(
     collection(db, NOTIFICATIONS_COLLECTION),
     where("userEmail", "==", userEmail),
-    orderBy("createdAt", "desc")
+    orderBy("createdAt", "desc"),
+    limit(limitCount)
   );
 
   return onSnapshot(q, (snapshot) => {

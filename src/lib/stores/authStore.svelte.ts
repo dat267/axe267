@@ -1,5 +1,5 @@
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth } from "../services/firebase";
 
 class AuthStore {
   #user = $state<User | null>(null);
@@ -16,9 +16,9 @@ class AuthStore {
 
   get user() { return this.#user; }
   set user(value: User | null) { this.#user = value; }
-  
+
   get loading() { return this.#loading; }
-  
+
   get isVerified() { return this.#isVerified; }
   set isVerified(value: boolean) { this.#isVerified = value; }
 

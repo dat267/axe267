@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Notifications: Users can only see notifications sent to their email
+    match /notifications/{notificationId} {
+      allow read, delete: if request.auth != null && request.auth.token.email == resource.data.userEmail;
+      allow create: if request.auth != null; 
+    }
+    
+    // API Keys: Users can only manage their own keys
+    match /api_keys/{keyId} {
+      allow read, list, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+    }
+  }
+}

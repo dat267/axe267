@@ -4,7 +4,7 @@
   import { signOut } from "firebase/auth";
   import { auth } from "./lib/firebase";
   import { authStore } from "./lib/authStore.svelte.ts";
-  import { subscribeNotifications, deleteNotification, type Notification } from "./lib/notificationService";
+  import { subscribeNotifications, deleteNotification, clearAllNotifications, type Notification } from "./lib/notificationService";
   import { requestNotificationPermission, sendLocalNotification } from "./lib/notificationPermission";
   import NotificationFeed from './lib/NotificationFeed.svelte';
   import Login from './lib/Login.svelte';
@@ -96,8 +96,13 @@
   
   async function clearAll() {
     if (!confirm("Are you sure you want to clear all notifications?")) return;
-    for (const n of notifications) {
-      await deleteNotification(n.id);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (idToken) {
+        await clearAllNotifications(idToken);
+      }
+    } catch (e) {
+      console.error("Failed to clear notifications", e);
     }
   }
 
@@ -218,20 +223,26 @@
             </div>
           </div>
           
-          <div class="flex items-center gap-2 md:gap-4">
-            <button onclick={toggleTheme} class="rounded-lg border border-border p-2 text-gray-600 transition-colors hover:bg-gray-500/10 dark:text-gray-400 dark:hover:bg-gray-500/20" aria-label="Toggle theme">
+          <div class="flex items-center gap-2 md:gap-3">
+            <button 
+              onclick={toggleTheme} 
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-gray-600 transition-colors hover:bg-gray-500/10 dark:text-gray-400 dark:hover:bg-gray-500/20" 
+              aria-label="Toggle theme"
+            >
               {#if darkMode}
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
               {:else}
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
               {/if}
             </button>
             <button 
-              class="hidden rounded-lg border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-500/10 dark:hover:bg-gray-500/20 sm:block disabled:opacity-50" 
+              class="flex h-10 min-w-[40px] items-center justify-center gap-2 rounded-lg border border-border px-0 text-sm font-medium transition-colors hover:bg-gray-500/10 dark:hover:bg-gray-500/20 disabled:opacity-50 sm:px-4" 
               onclick={clearAll}
               disabled={notifications.length === 0}
+              aria-label="Clear all notifications"
             >
-              Clear All
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span class="hidden sm:inline">Clear All</span>
             </button>
           </div>
         </header>

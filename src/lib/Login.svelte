@@ -51,9 +51,9 @@
   {/if}
 {/snippet}
 
-<div class="flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
-  <div class="w-full max-w-sm">
-    <div class="mb-10 text-center">
+<div class="flex min-h-svh w-full flex-col overflow-y-auto bg-background px-6 pt-12 pb-24 text-foreground sm:items-center sm:justify-center sm:py-12">
+  <div class="mx-auto w-full max-w-sm">
+    <div class="mb-8 text-center sm:mb-10">
       <div class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>

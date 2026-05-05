@@ -74,3 +74,31 @@ export async function deleteNotification(id: string) {
     throw error;
   }
 }
+
+/**
+ * Clears all notifications for the current user via the backend API.
+ */
+export async function clearAllNotifications(idToken: string) {
+  const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "";
+  const region = "asia-southeast1";
+  const apiUrl = `https://${region}-${projectId}.cloudfunctions.net/api/notify`;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${idToken}`
+      }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Failed to clear notifications: ${text}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error in clearAllNotifications:", error);
+    throw error;
+  }
+}

@@ -2,10 +2,23 @@
   let { code } = $props<{ code: string }>();
   let copied = $state(false);
 
-  function copyToClipboard() {
-    navigator.clipboard.writeText(code);
-    copied = true;
-    setTimeout(() => copied = false, 2000);
+  async function copyToClipboard() {
+    try {
+      if (!navigator.clipboard) {
+        const textArea = document.createElement("textarea");
+        textArea.value = code;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      } else {
+        await navigator.clipboard.writeText(code);
+      }
+      copied = true;
+      setTimeout(() => copied = false, 2000);
+    } catch (err) {
+      console.error('Failed to copy code: ', err);
+    }
   }
 </script>
 

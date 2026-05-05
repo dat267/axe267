@@ -49,8 +49,8 @@
   }
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-background p-4 text-center text-foreground">
-  <div class="w-full max-w-sm">
+<div class="flex min-h-svh w-full flex-col overflow-y-auto bg-background px-6 pt-12 pb-24 text-center text-foreground sm:items-center sm:justify-center sm:py-12">
+  <div class="mx-auto w-full max-w-sm">
     <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>

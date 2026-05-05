@@ -131,11 +131,11 @@
                 {unreadCount} notifications
             </p>
         </div>
-        <div class="flex gap-1 rounded-lg bg-gray-500/5 p-1">
+        <div class="flex w-full gap-1 rounded-lg bg-gray-500/5 p-1 sm:w-auto">
             {#each categories as cat}
                 <button
                     onclick={() => (selectedCategory = cat.id)}
-                    class="rounded-md px-3 py-1.5 text-xs font-semibold transition-all {selectedCategory ===
+                    class="flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none {selectedCategory ===
                     cat.id
                         ? 'bg-white text-foreground shadow-sm dark:bg-gray-700 dark:text-white'
                         : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}"

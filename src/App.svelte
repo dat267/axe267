@@ -231,7 +231,7 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
       >
         <div class="flex items-center gap-4">
           <button
-            class="md:hidden text-gray-500 hover:bg-gray-500/10 rounded-lg p-2 transition-colors"
+            class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-500/10 md:hidden"
             onclick={() => (sidebarOpen = !sidebarOpen)}
             aria-label={sidebarOpen ? "Close menu" : "Open menu"}
           >
@@ -252,7 +252,7 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
         <div class="flex items-center gap-2">
           <button
             onclick={toggleTheme}
-            class="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-gray-600 hover:bg-gray-500/10 dark:text-gray-400"
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-gray-600 transition-colors hover:bg-gray-500/10 dark:text-gray-400"
             aria-label="Toggle theme"
           >
             {#if darkMode}
@@ -268,18 +268,17 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
           <button
             onclick={handleClearAll}
             disabled={notifications.length === 0}
-            class="flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-medium transition-all {showClearConfirm
+            aria-label="Clear all notifications"
+            class="flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-medium transition-all {showClearConfirm
               ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
               : 'border-border text-foreground hover:bg-gray-500/10'} disabled:opacity-50"
           >
             {#if showClearConfirm}
               {@render icon('<path d="M20 6L9 17l-5-5"></path>')}
-              <span>Confirm?</span>
             {:else}
               {@render icon(
                 '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>',
               )}
-              <span class="hidden sm:inline">Clear All</span>
             {/if}
           </button>
         </div>

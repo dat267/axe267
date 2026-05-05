@@ -41,7 +41,7 @@
     {
       to: "/settings",
       label: "Settings",
-      icon: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>',
+      icon: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>',
     },
   ];
 
@@ -49,7 +49,6 @@
   let sidebarOpen = $state(false);
   let notifications = $state<Notification[]>([]);
   let notificationLimit = $state(20);
-  let lastNotificationId = $state<string | null>(null);
   let initialLoadDone = false;
   let unsubscribe: (() => void) | null = null;
 
@@ -132,20 +131,25 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
       if (unsubscribe) unsubscribe();
       requestNotificationPermission();
 
-      unsubscribe = subscribeNotifications(user.email!, (data) => {
-        if (initialLoadDone && data.length > 0) {
-          const newest = data[0];
-          if (newest.id !== lastNotificationId) {
-            sendLocalNotification(newest.title, {
-              body: `${newest.source}: ${newest.message}`,
-              tag: newest.id,
-            });
+      unsubscribe = subscribeNotifications(
+        user.email!,
+        (data) => {
+          if (initialLoadDone && data.length > 0) {
+            const newest = data[0];
+            const isTrulyNew = !notifications.some((n) => n.id === newest.id);
+
+            if (isTrulyNew) {
+              sendLocalNotification(newest.title, {
+                body: `${newest.source}: ${newest.message}`,
+                tag: newest.id,
+              });
+            }
           }
-        }
-        notifications = data;
-        if (data.length > 0) lastNotificationId = data[0].id;
-        initialLoadDone = true;
-      }, notificationLimit);
+          notifications = data;
+          initialLoadDone = true;
+        },
+        notificationLimit,
+      );
     } else if (unsubscribe) {
       unsubscribe();
       unsubscribe = null;
@@ -282,7 +286,7 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
       </header>
 
       <div class="flex flex-1 overflow-hidden relative">
-        <aside class="hidden w-64 flex-col border-r border-border md:flex">
+        <aside class="hidden w-64 shrink-0 flex-col border-r border-border md:flex">
           {@render sidebar()}
         </aside>
 
@@ -301,7 +305,7 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
           {@render sidebar(true)}
         </aside>
 
-        <main class="flex grow flex-col overflow-y-auto">
+        <main class="flex grow min-w-0 flex-col overflow-y-auto">
           <section class="flex flex-col">
             <Route path="/notifications">
               <Notifications

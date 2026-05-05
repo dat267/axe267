@@ -179,9 +179,9 @@
         <Alert type="success" {message} />
 
         <div class="space-y-6">
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-1 min-w-0">
             <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Current Email</span>
-            <p class="text-sm font-medium">{authStore.user?.email}</p>
+            <p class="text-sm font-medium truncate">{authStore.user?.email}</p>
           </div>
 
           <form onsubmit={handleUpdateEmail} class="space-y-6 pt-6 border-t border-border">

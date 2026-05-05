@@ -63,9 +63,9 @@
 >
   {#if selectedNotification}
     <div class="space-y-4">
-      <div class="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-gray-400">
+      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-400">
         <span>{selectedNotification.source}</span>
-        <span>{formatFullTime(selectedNotification.createdAt)}</span>
+        <span class="font-medium tracking-tight text-gray-500 dark:text-gray-400 sm:font-bold sm:tracking-widest">{formatFullTime(selectedNotification.createdAt)}</span>
       </div>
       
       <div class="rounded-lg bg-gray-500/5 p-4">

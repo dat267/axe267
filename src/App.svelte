@@ -17,8 +17,8 @@
   let darkMode = $state(true);
   let sidebarOpen = $state(false);
   let notifications = $state<Notification[]>([]);
+  let knownNotificationIds = new Set<string>();
   let unsubscribe: (() => void) | null = null;
-  let lastNotificationId: string | null = null;
   let initialLoadDone = false;
 
   onMount(() => {

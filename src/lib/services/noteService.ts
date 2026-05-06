@@ -3,6 +3,7 @@ import {
   addDoc,
   query,
   where,
+  orderBy,
   onSnapshot,
   updateDoc,
   deleteDoc,
@@ -49,13 +50,14 @@ export async function createNote(userEmail: string, title: string, content: stri
  * Subscribes to notes for a specific user.
  */
 export function subscribeNotes(
-  userEmail: string, 
+  userEmail: string,
   callback: (notes: Note[]) => void,
   limitCount: number = 50
 ) {
   const q = query(
     collection(db, NOTES_COLLECTION),
     where("userEmail", "==", userEmail),
+    orderBy("createdAt", "desc"),
     limit(limitCount)
   );
 
@@ -65,19 +67,11 @@ export function subscribeNotes(
       ...doc.data()
     })) as Note[];
 
-    // Sort in memory for now to avoid indexing requirement
-    notes.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis?.() || 0;
-      const timeB = b.createdAt?.toMillis?.() || 0;
-      return timeB - timeA;
-    });
-
     callback(notes);
   }, (error) => {
     console.error("Subscription error:", error);
   });
 }
-
 /**
  * Updates an existing note.
  */

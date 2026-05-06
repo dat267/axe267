@@ -206,7 +206,7 @@ ${authHeader} \\
   </div>
 {/snippet}
 
-<div class="mx-auto w-full max-w-3xl p-4 md:p-8">
+<div>
   <div class="mb-10 text-center md:text-left">
     <h1 class="text-2xl font-bold">CLI Integration</h1>
     <p class="mt-2 text-sm text-gray-400">

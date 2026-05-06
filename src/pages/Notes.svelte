@@ -7,6 +7,7 @@
         updateNote,
         deleteNote,
         togglePin,
+        getNotesCount,
         type Note,
     } from "../lib/services/noteService";
     import Button from "../lib/components/Button.svelte";
@@ -14,6 +15,7 @@
     import Alert from "../lib/components/Alert.svelte";
 
     let notes = $state<Note[]>([]);
+    let totalCount = $state(0);
     let searchQuery = $state("");
     let noteLimit = $state(50);
     let showModal = $state(false);
@@ -21,6 +23,8 @@
     let loading = $state(false);
     let error = $state("");
     let contentElement = $state<HTMLTextAreaElement | null>(null);
+    let titleElement = $state<HTMLInputElement | null>(null);
+    let observerTarget = $state<HTMLElement | null>(null);
 
     let form = $state({
         title: "",
@@ -40,9 +44,16 @@
     let pinnedNotes = $derived(filteredNotes.filter(n => n.isPinned));
     let otherNotes = $derived(filteredNotes.filter(n => !n.isPinned));
 
+    async function loadTotalCount() {
+        if (authStore.user?.email) {
+            totalCount = await getNotesCount(authStore.user.email);
+        }
+    }
+
     $effect(() => {
         const user = authStore.user;
         if (user?.email) {
+            loadTotalCount();
             const unsubscribe = subscribeNotes(user.email, (data) => {
                 notes = data;
             }, noteLimit);
@@ -50,15 +61,51 @@
         }
     });
 
-    function loadMore() {
-        noteLimit += 50;
-    }
+    $effect(() => {
+        if (!observerTarget) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && notes.length >= noteLimit && notes.length < totalCount) {
+                noteLimit += 50;
+            }
+        }, { threshold: 0 });
+
+        observer.observe(observerTarget);
+        return () => observer.disconnect();
+    });
 
     $effect(() => {
-        if (showModal && contentElement) {
-            contentElement.focus();
+        if (showModal) {
+            window.history.pushState({ modalOpen: true }, "");
+            
+            const handlePopState = (e: PopStateEvent) => {
+                if (showModal) {
+                    handleSave();
+                }
+            };
+
+            window.addEventListener("popstate", handlePopState);
+
+            // Focus after modal animation
+            setTimeout(() => {
+                if (editingNote) {
+                    contentElement?.focus();
+                } else {
+                    titleElement?.focus();
+                }
+            }, 100);
+
+            return () => {
+                window.removeEventListener("popstate", handlePopState);
+            };
         }
     });
+
+    function handleClose() {
+        if (showModal) {
+            window.history.back();
+        }
+    }
 
     function openCreate() {
         editingNote = null;
@@ -142,7 +189,7 @@
             <h3 class="font-bold text-sm text-foreground line-clamp-2 grow">{note.title || ''}</h3>
             <button 
                 onclick={(e) => handleTogglePin(e, note)}
-                class="shrink-0 p-1.5 rounded-full transition-all {note.isPinned ? 'text-gray-800 dark:text-white opacity-100' : 'text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-gray-500/10'}"
+                class="shrink-0 p-1.5 rounded-full transition-all {note.isPinned ? 'text-gray-800 dark:text-white' : 'text-gray-400 hover:bg-gray-500/10'}"
                 aria-label={note.isPinned ? "Unpin note" : "Pin note"}
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={note.isPinned ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -160,7 +207,7 @@
             </span>
             <button 
                 onclick={(e) => { e.stopPropagation(); handleDelete(note.id); }}
-                class="rounded-md p-1.5 text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                class="rounded-md p-1.5 text-gray-400 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
                 aria-label="Delete note"
             >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -169,10 +216,15 @@
     </div>
 {/snippet}
 
-<div class="mx-auto w-full max-w-5xl p-4 md:p-8">
+<div>
     <!-- Header & Search -->
     <div class="mb-12 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-        <h1 class="text-2xl font-bold tracking-tight">Notes</h1>
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight">Notes</h1>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Showing {filteredNotes.length} of {totalCount} notes
+            </p>
+        </div>
         <div class="flex items-center gap-3 w-full sm:max-w-md">
             <div class="relative flex-1">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -221,23 +273,14 @@
             {/each}
         </div>
 
-        {#if notes.length >= noteLimit}
-            <div class="mt-12 flex justify-center pb-10">
-                <button
-                    onclick={loadMore}
-                    class="rounded-lg border border-border px-6 py-2 text-sm font-semibold text-foreground/70 hover:bg-gray-500/10 hover:text-foreground transition-all"
-                >
-                    Load More
-                </button>
-            </div>
-        {/if}
+        <div bind:this={observerTarget} class="h-10 w-full"></div>
     {/if}
 </div>
 
 <Modal
     show={showModal}
     title=""
-    onClose={handleSave}
+    onClose={handleClose}
     showCloseButton={false}
     showFooter={false}
 >
@@ -246,6 +289,7 @@
         
         <div class="flex items-center justify-between gap-4 min-h-[32px]">
             <input
+                bind:this={titleElement}
                 bind:value={form.title}
                 placeholder="Title"
                 class="w-full bg-transparent text-lg font-bold outline-none border-none p-0"
@@ -276,7 +320,7 @@
         ></textarea>
 
         <div class="flex justify-end pt-4">
-            <Button {loading} className="px-6!" onclick={handleSave}>Close</Button>
+            <Button {loading} className="px-6!" onclick={handleClose}>Close</Button>
         </div>
     </div>
 </Modal>

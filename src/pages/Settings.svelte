@@ -123,7 +123,7 @@
   }
 </script>
 
-<div class="mx-auto w-full max-w-5xl p-4 md:p-8">
+<div>
   <div class="mb-12">
     <h1 class="text-2xl font-bold tracking-tight">Account Settings</h1>
     <p class="text-sm text-gray-500 dark:text-gray-400">Manage your profile, security, and preferences</p>

@@ -9,11 +9,12 @@ import {
   doc,
   limit,
   serverTimestamp,
+  getCountFromServer,
   type Timestamp
-} from "firebase/firestore";
-import { db } from "./firebase";
+  } from "firebase/firestore";
+  import { db } from "./firebase";
 
-export interface Notification {
+  export interface Notification {
   id: string;
   userEmail: string;
   type: 'info' | 'success' | 'warning' | 'error';
@@ -22,9 +23,26 @@ export interface Notification {
   message: string;
   category: 'system' | 'mobile' | 'desktop';
   createdAt: Timestamp;
-}
+  }
 
-const NOTIFICATIONS_COLLECTION = "notifications";
+  const NOTIFICATIONS_COLLECTION = "notifications";
+
+/**
+ * Gets the total count of notifications for a specific user.
+ */
+export async function getNotificationsCount(userEmail: string) {
+  try {
+    const q = query(
+      collection(db, NOTIFICATIONS_COLLECTION),
+      where("userEmail", "==", userEmail)
+    );
+    const snapshot = await getCountFromServer(q);
+    return snapshot.data().count;
+  } catch (error) {
+    console.error("Error getting notifications count:", error);
+    return 0;
+  }
+}
 
 /**
  * Pushes a notification to Firestore. 

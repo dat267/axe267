@@ -10,6 +10,7 @@ import {
   doc,
   limit,
   serverTimestamp,
+  getCountFromServer,
   type Timestamp
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -25,6 +26,23 @@ export interface Note {
 }
 
 const NOTES_COLLECTION = "notes";
+
+/**
+ * Gets the total count of notes for a specific user.
+ */
+export async function getNotesCount(userEmail: string) {
+  try {
+    const q = query(
+      collection(db, NOTES_COLLECTION),
+      where("userEmail", "==", userEmail)
+    );
+    const snapshot = await getCountFromServer(q);
+    return snapshot.data().count;
+  } catch (error) {
+    console.error("Error getting notes count:", error);
+    return 0;
+  }
+}
 
 /**
  * Creates a new note in Firestore.

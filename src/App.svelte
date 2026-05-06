@@ -8,6 +8,7 @@
     subscribeNotifications,
     deleteNotification,
     clearAllNotifications,
+    getNotificationsCount,
     type Notification,
   } from "./lib/services/notificationService";
   import {
@@ -23,40 +24,34 @@
 
   let { url = "" } = $props();
 
-  const NAV_LINKS = [
-    {
-      to: "/",
-      label: "Home",
-      icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
-    },
-    {
-      to: "/notifications",
-      label: "Notifications",
-      icon: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path>',
-    },
-    {
-      to: "/notes",
-      label: "Notes",
-      icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline>',
-    },
-    {
-      to: "/integrations",
-      label: "Integrations",
-      icon: '<path d="M16 18l6-6-6-6M8 6l-6 6 6 6"></path>',
-    },
-    {
-      to: "/settings",
-      label: "Settings",
-      icon: '<circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>',
-    },
-  ];
-
   let darkMode = $state(true);
-  let sidebarOpen = $state(false);
   let notifications = $state<Notification[]>([]);
+  let totalNotificationsCount = $state(0);
   let notificationLimit = $state(20);
   let initialLoadDone = false;
   let unsubscribe: (() => void) | null = null;
+  let currentPath = $state(window.location.pathname);
+
+  // Sync currentPath with navigation
+  onMount(() => {
+    const handleLocationChange = () => {
+      currentPath = window.location.pathname;
+    };
+    window.addEventListener("popstate", handleLocationChange);
+    // Overwrite history methods to detect internal routing
+    const originalPushState = history.pushState;
+    history.pushState = function() {
+      originalPushState.apply(this, arguments as any);
+      handleLocationChange();
+    };
+    return () => window.removeEventListener("popstate", handleLocationChange);
+  });
+
+  async function loadTotalNotificationsCount() {
+    if (authStore.user?.email) {
+      totalNotificationsCount = await getNotificationsCount(authStore.user.email);
+    }
+  }
 
   const loadMore = () => {
     notificationLimit += 20;
@@ -75,54 +70,47 @@
       ? "hsl(220 10% 10%)"
       : "hsl(0 0% 98%)";
   };
-const handleLogout = async () => {
-  try {
-    await signOut(auth);
-  } catch (e) {
-    console.error(e);
-  }
-};
 
-const dismiss = async (id: string) => {
-  try {
-    await deleteNotification(id);
-  } catch (e) {
-    console.error(e);
-  }
-};
-
-let showClearConfirm = $state(false);
-let confirmTimer: ReturnType<typeof setTimeout>;
-
-const handleClearAll = async () => {
-  if (!showClearConfirm) {
-    showClearConfirm = true;
-    clearTimeout(confirmTimer);
-    confirmTimer = setTimeout(() => {
-      showClearConfirm = false;
-    }, 3000);
-    return;
-  }
-
-  try {
-    const token = await auth.currentUser?.getIdToken();
-    if (token) {
-      await clearAllNotifications(token);
-      showClearConfirm = false;
-      clearTimeout(confirmTimer);
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
     }
-  } catch (e) {
-    console.error(e);
-  }
-};
+  };
 
-const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
-    class: `flex items-center gap-3 rounded-lg px-4 py-2 text-sm transition-colors ${
-      isCurrent
-        ? "font-semibold bg-gray-500/10 text-foreground"
-        : "font-medium hover:bg-gray-500/10"
-    }`,
-  });
+  const dismiss = async (id: string) => {
+    try {
+      await deleteNotification(id);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  let showClearConfirm = $state(false);
+  let confirmTimer: ReturnType<typeof setTimeout>;
+
+  const handleClearAll = async () => {
+    if (!showClearConfirm) {
+      showClearConfirm = true;
+      clearTimeout(confirmTimer);
+      confirmTimer = setTimeout(() => {
+        showClearConfirm = false;
+      }, 3000);
+      return;
+    }
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (token) {
+        await clearAllNotifications(token);
+        showClearConfirm = false;
+        clearTimeout(confirmTimer);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   onMount(() => {
     const saved = localStorage.getItem("theme");
@@ -136,6 +124,7 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
     if (user && authStore.isVerified) {
       if (unsubscribe) unsubscribe();
       requestNotificationPermission();
+      loadTotalNotificationsCount();
 
       unsubscribe = subscribeNotifications(
         user.email!,
@@ -179,44 +168,6 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
   </svg>
 {/snippet}
 
-{#snippet navList(links: typeof NAV_LINKS, isMobile = false)}
-  <nav class="flex flex-col gap-1 p-4">
-    {#each links as link}
-      <Link
-        to={link.to}
-        onclick={() => isMobile && (sidebarOpen = false)}
-        getProps={getLinkProps}
-      >
-        {@render icon(link.icon)}
-        {link.label}
-      </Link>
-    {/each}
-  </nav>
-{/snippet}
-
-{#snippet sidebar(isMobile = false)}
-  <div class="flex h-full flex-col bg-surface">
-    <div class={isMobile ? "" : "pt-4"}>
-      {@render navList(NAV_LINKS, isMobile)}
-    </div>
-
-    <div class="mt-auto border-t border-border p-4 flex flex-col gap-1">
-      <div class="px-4 py-2 text-xs font-medium text-foreground/50 truncate">
-        {authStore.user?.email}
-      </div>
-      <button
-        onclick={handleLogout}
-        class="flex items-center gap-3 rounded-lg px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-500/10 transition-colors"
-      >
-        {@render icon(
-          '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>',
-        )}
-        Sign Out
-      </button>
-    </div>
-  </div>
-{/snippet}
-
 {#if authStore.loading}
   <div
     class="flex h-screen w-full items-center justify-center bg-background text-foreground"
@@ -235,27 +186,41 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
       <header
         class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/80 p-4 backdrop-blur-md md:px-8"
       >
-        <div class="flex items-center gap-4">
-          <button
-            class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-500/10 md:hidden"
-            onclick={() => (sidebarOpen = !sidebarOpen)}
-            aria-label={sidebarOpen ? "Close menu" : "Open menu"}
-          >
-            {#if sidebarOpen}
-              {@render icon(
-                '<line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>',
-                24,
-              )}
-            {:else}
-              {@render icon(
-                '<line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>',
-                24,
-              )}
-            {/if}
-          </button>
+        <div class="flex items-center gap-2">
+          {#if currentPath !== "/"}
+            <Link
+              to="/"
+              class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-500/10"
+              aria-label="Back to home"
+            >
+              {@render icon('<path d="M19 12H5M12 19l-7-7 7-7"></path>', 20)}
+            </Link>
+          {/if}
+          <Link to="/" class="group flex items-center ml-2 transition-all">
+            <div class="h-8 w-8 rounded-lg border border-border bg-surface flex items-center justify-center text-foreground font-black text-[10px] shadow-sm transition-all group-hover:border-gray-500/50 group-hover:bg-gray-500/5 dark:bg-white/5 dark:backdrop-blur-md">AXE</div>
+          </Link>
         </div>
 
         <div class="flex items-center gap-2">
+          {#if currentPath === "/notifications"}
+            <button
+              onclick={handleClearAll}
+              disabled={notifications.length === 0}
+              aria-label="Clear all notifications"
+              class="flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-medium transition-all {showClearConfirm
+                ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
+                : 'border-border text-foreground hover:bg-gray-500/10'} disabled:opacity-50"
+            >
+              {#if showClearConfirm}
+                {@render icon('<path d="M20 6L9 17l-5-5"></path>')}
+              {:else}
+                {@render icon(
+                  '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>',
+                )}
+              {/if}
+            </button>
+          {/if}
+          
           <button
             onclick={toggleTheme}
             class="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-gray-600 transition-colors hover:bg-gray-500/10 dark:text-gray-400"
@@ -271,63 +236,37 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
               )}
             {/if}
           </button>
+          
           <button
-            onclick={handleClearAll}
-            disabled={notifications.length === 0}
-            aria-label="Clear all notifications"
-            class="flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-medium transition-all {showClearConfirm
-              ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
-              : 'border-border text-foreground hover:bg-gray-500/10'} disabled:opacity-50"
+            onclick={handleLogout}
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-red-500 transition-colors hover:bg-red-500/10"
+            aria-label="Sign out"
           >
-            {#if showClearConfirm}
-              {@render icon('<path d="M20 6L9 17l-5-5"></path>')}
-            {:else}
-              {@render icon(
-                '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>',
-              )}
-            {/if}
+            {@render icon(
+              '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>',
+            )}
           </button>
         </div>
       </header>
 
-      <div class="flex flex-1 overflow-hidden relative">
-        <aside class="hidden w-64 shrink-0 flex-col border-r border-border md:flex">
-          {@render sidebar()}
-        </aside>
-
-        {#if sidebarOpen}
-          <div
-            class="fixed inset-0 top-16 z-40 bg-black/20 md:hidden"
-            onclick={() => (sidebarOpen = false)}
-            aria-hidden="true"
-          ></div>
-        {/if}
-        <aside
-          class="fixed inset-x-0 bottom-0 top-16 z-50 transform transition-transform duration-300 md:hidden {sidebarOpen
-            ? 'translate-x-0'
-            : '-translate-x-full'}"
-        >
-          {@render sidebar(true)}
-        </aside>
-
-        <main class="flex grow min-w-0 flex-col overflow-y-auto">
-          <section class="flex flex-col">
-            <Route path="/"><Home /></Route>
-            <Route path="/notifications">
-              <Notifications
-                title="Notifications"
-                {notifications}
-                limit={notificationLimit}
-                onLoadMore={loadMore}
-                onDismiss={dismiss}
-              />
-            </Route>
-            <Route path="/notes"><Notes /></Route>
-            <Route path="/integrations"><Integrations /></Route>
-            <Route path="/settings"><Profile /></Route>
-          </section>
-        </main>
-      </div>
+      <main class="flex flex-1 overflow-y-auto overflow-x-hidden">
+        <section class="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 py-8 md:px-8 md:py-12">
+          <Route path="/"><Home /></Route>
+          <Route path="/notifications">
+            <Notifications
+              title="Notifications"
+              {notifications}
+              totalCount={totalNotificationsCount}
+              limit={notificationLimit}
+              onLoadMore={loadMore}
+              onDismiss={dismiss}
+            />
+          </Route>
+          <Route path="/notes"><Notes /></Route>
+          <Route path="/integrations"><Integrations /></Route>
+          <Route path="/settings"><Profile /></Route>
+        </section>
+      </main>
     </div>
   </Router>
 {/if}

@@ -1,4 +1,4 @@
-# NotifiDash
+# axe
 
 A professional, responsive notification dashboard built with **Svelte 5 (Runes)**, **Tailwind CSS v4**, and **Firebase**. Push alerts from any CLI environment via `curl` and receive them in real-time with native browser push support.
 

@@ -5,12 +5,14 @@
     let {
         title = "Notifications",
         notifications = [],
+        totalCount = 0,
         limit = 20,
         onLoadMore = () => {},
         onDismiss = () => {},
     } = $props<{
         title?: string;
         notifications?: Notification[];
+        totalCount?: number;
         limit?: number;
         onLoadMore?: () => void;
         onDismiss?: (id: string) => void;
@@ -19,6 +21,7 @@
     let selectedNotification = $state<Notification | null>(null);
     let showModal = $state(false);
     let selectedCategory = $state("all");
+    let observerTarget = $state<HTMLElement | null>(null);
 
     const categories = [
         { id: "all", label: "All" },
@@ -33,6 +36,42 @@
         ),
     );
     let unreadCount = $derived(filteredNotifications.length);
+
+    $effect(() => {
+        if (showModal) {
+            window.history.pushState({ modalOpen: true }, "");
+            
+            const handlePopState = () => {
+                if (showModal) {
+                    showModal = false;
+                }
+            };
+
+            window.addEventListener("popstate", handlePopState);
+            return () => {
+                window.removeEventListener("popstate", handlePopState);
+            };
+        }
+    });
+
+    function handleClose() {
+        if (showModal) {
+            window.history.back();
+        }
+    }
+
+    $effect(() => {
+        if (!observerTarget) return;
+
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && notifications.length >= limit && notifications.length < totalCount) {
+                onLoadMore();
+            }
+        }, { threshold: 0 });
+
+        observer.observe(observerTarget);
+        return () => observer.disconnect();
+    });
 
     const typeColors: Record<string, string> = {
         info: "bg-gray-500",
@@ -102,7 +141,7 @@
 
         <div class="flex shrink-0 items-center pr-1">
             <button
-                class="flex items-center justify-center rounded-md p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 md:invisible md:group-hover:visible"
+                class="flex items-center justify-center rounded-md p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
                 onclick={(e) => handleDismiss(e, notif.id)}
                 aria-label="Dismiss notification"
             >
@@ -124,12 +163,12 @@
     </div>
 {/snippet}
 
-<div class="mx-auto w-full max-w-3xl p-4 md:p-8">
+<div>
     <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h1 class="text-xl font-bold md:text-2xl">{title}</h1>
             <p class="text-xs text-gray-500 dark:text-gray-400 md:text-sm">
-                {unreadCount} notifications
+                Showing {unreadCount} of {totalCount} notifications
             </p>
         </div>
         <div class="flex w-full gap-1 rounded-lg bg-gray-500/5 p-1 sm:w-auto">
@@ -172,23 +211,14 @@
             {/each}
         </div>
 
-        {#if notifications.length >= limit}
-            <div class="mt-8 flex justify-center">
-                <button
-                    onclick={onLoadMore}
-                    class="rounded-lg border border-border px-6 py-2 text-sm font-semibold text-foreground/70 hover:bg-gray-500/10 hover:text-foreground transition-all"
-                >
-                    Load More
-                </button>
-            </div>
-        {/if}
+        <div bind:this={observerTarget} class="h-10 w-full"></div>
     {/if}
 </div>
 
 <Modal
     show={showModal}
     title={selectedNotification?.title || "Notification Details"}
-    onClose={() => (showModal = false)}
+    onClose={handleClose}
 >
     {#if selectedNotification}
         <div class="space-y-4">

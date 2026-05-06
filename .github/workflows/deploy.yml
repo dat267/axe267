@@ -44,7 +44,7 @@ jobs:
 
       # --- DEPLOY TO FIREBASE (Hosting + Functions) ---
       - name: Deploy to Firebase
-        uses: w9jds/firebase-action@v11.33.0
+        uses: w9jds/firebase-action@v15.16.0
         with:
           args: deploy
         env:

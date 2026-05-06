@@ -49,8 +49,31 @@ app.use((0, cors_1.default)({ origin: true }));
 app.use(express_1.default.json());
 const authenticate = async (req, res, next) => {
     const authHeader = req.headers.authorization;
+    const apiKey = req.headers["x-api-key"];
+    if (apiKey) {
+        try {
+            const keysSnapshot = await admin.firestore()
+                .collection("api_keys")
+                .where("key", "==", apiKey)
+                .limit(1)
+                .get();
+            if (keysSnapshot.empty) {
+                return res.status(401).send("Unauthorized: Invalid API Key");
+            }
+            const keyData = keysSnapshot.docs[0].data();
+            req.user = {
+                uid: keyData.userId,
+                email: keyData.userEmail,
+            };
+            return next();
+        }
+        catch (error) {
+            console.error("Error verifying API key:", error);
+            return res.status(500).send("Internal Server Error");
+        }
+    }
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).send("Unauthorized: No Bearer token provided");
+        return res.status(401).send("Unauthorized: No valid authentication provided (Bearer token or x-api-key)");
     }
     const idToken = authHeader.split("Bearer ")[1];
     try {
@@ -86,6 +109,35 @@ app.post("/notify", authenticate, async (req, res) => {
     }
     catch (error) {
         console.error("Error adding notification:", error);
+        return res.status(500).send("Internal Server Error");
+    }
+});
+app.delete("/notify", authenticate, async (req, res) => {
+    const userEmail = req.user?.email;
+    if (!userEmail) {
+        return res.status(401).send("Unauthorized: User email not found");
+    }
+    try {
+        const snapshot = await admin.firestore()
+            .collection("notifications")
+            .where("userEmail", "==", userEmail)
+            .get();
+        if (snapshot.empty) {
+            return res.status(200).send({ count: 0 });
+        }
+        const chunks = [];
+        for (let i = 0; i < snapshot.docs.length; i += 500) {
+            chunks.push(snapshot.docs.slice(i, i + 500));
+        }
+        for (const chunk of chunks) {
+            const batch = admin.firestore().batch();
+            chunk.forEach(doc => batch.delete(doc.ref));
+            await batch.commit();
+        }
+        return res.status(200).send({ count: snapshot.size });
+    }
+    catch (error) {
+        console.error("Error clearing notifications:", error);
         return res.status(500).send("Internal Server Error");
     }
 });

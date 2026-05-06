@@ -68,11 +68,12 @@
 </script>
 
 {#snippet notificationCard(notif: Notification)}
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
         class="group relative flex h-20 w-full cursor-pointer items-stretch gap-4 border-b border-gray-100 px-1 py-3 transition-colors hover:bg-gray-100/50 dark:border-gray-800/50 dark:hover:bg-gray-800/30"
         onclick={() => handleView(notif)}
+        onkeydown={(e) => e.key === 'Enter' && handleView(notif)}
+        role="button"
+        tabindex="0"
     >
         <div
             class="my-1 w-1.5 shrink-0 rounded-full {typeColors[notif.type] ||

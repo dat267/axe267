@@ -15,6 +15,7 @@
     sendLocalNotification,
   } from "./lib/utils/notificationPermission.ts";
   import Auth from "./pages/Authentication.svelte";
+  import Home from "./pages/Home.svelte";
   import Profile from "./pages/Settings.svelte";
   import Integrations from "./pages/Integrations.svelte";
   import Notifications from "./pages/Notifications.svelte";
@@ -23,6 +24,11 @@
   let { url = "" } = $props();
 
   const NAV_LINKS = [
+    {
+      to: "/",
+      label: "Home",
+      icon: '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>',
+    },
     {
       to: "/notifications",
       label: "Notifications",
@@ -306,6 +312,7 @@ const getLinkProps = ({ isCurrent }: { isCurrent: boolean }) => ({
 
         <main class="flex grow min-w-0 flex-col overflow-y-auto">
           <section class="flex flex-col">
+            <Route path="/"><Home /></Route>
             <Route path="/notifications">
               <Notifications
                 title="Notifications"

@@ -134,12 +134,15 @@
     <div 
         class="break-inside-avoid group relative flex flex-col rounded-xl border border-border bg-surface p-4 transition-all hover:border-gray-500/30 hover:shadow-md cursor-pointer"
         onclick={() => openEdit(note)}
+        onkeydown={(e) => e.key === 'Enter' && openEdit(note)}
+        role="button"
+        tabindex="0"
     >
         <div class="flex items-center justify-between gap-2 mb-2 min-h-[28px]">
             <h3 class="font-bold text-sm text-foreground line-clamp-2 grow">{note.title || ''}</h3>
             <button 
                 onclick={(e) => handleTogglePin(e, note)}
-                class="shrink-0 p-1.5 rounded-full transition-all {note.isPinned ? 'text-gray-800 dark:text-white opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-gray-500/10'}"
+                class="shrink-0 p-1.5 rounded-full transition-all {note.isPinned ? 'text-gray-800 dark:text-white opacity-100' : 'text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-gray-500/10'}"
                 aria-label={note.isPinned ? "Unpin note" : "Pin note"}
             >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill={note.isPinned ? "currentColor" : "none"} stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -157,7 +160,7 @@
             </span>
             <button 
                 onclick={(e) => { e.stopPropagation(); handleDelete(note.id); }}
-                class="rounded-md p-1.5 text-gray-400 opacity-0 group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
+                class="rounded-md p-1.5 text-gray-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 hover:bg-rose-500/10 hover:text-rose-500 transition-all"
                 aria-label="Delete note"
             >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>

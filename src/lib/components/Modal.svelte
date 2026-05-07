@@ -45,7 +45,6 @@
 {#if show}
   <div
     class="fixed inset-0 z-100 flex items-center justify-center p-4"
-    transition:fade={{ duration: 200 }}
   >
     <!-- Backdrop -->
     <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -92,7 +91,7 @@
         <div class="mt-8 flex justify-end">
           <button
             onclick={onClose}
-            class="rounded-lg bg-gray-500/10 px-4 py-2 text-sm font-semibold hover:bg-gray-500/20 transition-colors"
+            class="rounded-lg bg-gray-500/10 px-4 py-2 text-sm font-semibold hover:bg-gray-500/20"
           >
             Close
           </button>

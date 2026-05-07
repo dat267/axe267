@@ -128,9 +128,9 @@
     <h1 class="text-2xl font-bold tracking-tight">Account Settings</h1>
   </div>
 
-  <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
+  <div class="max-w-3xl space-y-8">
     <!-- Main Settings Area -->
-    <div class="lg:col-span-8 space-y-8">
+    <div class="space-y-8">
       {#if showReauth}
         <section class="rounded-xl border border-border bg-surface p-6">
           <h2 class="text-lg font-semibold text-foreground mb-1">
@@ -212,7 +212,7 @@
           Danger Zone
         </h2>
         <p class="mt-1 text-sm text-gray-500">
-          Deleting your account is permanent and cannot be undone. All your notifications, notes, and API keys will be lost.
+          Deleting your account is permanent and cannot be undone. All your notifications and API keys will be lost.
         </p>
         <div class="mt-6 flex justify-start">
           <Button
@@ -225,25 +225,6 @@
           </Button>
         </div>
       </section>
-    </div>
-
-    <!-- Sidebar / Info Area -->
-    <div class="lg:col-span-4 space-y-6">
-      <div class="rounded-xl border border-border bg-gray-500/5 p-6">
-        <h3 class="text-sm font-bold uppercase tracking-widest text-gray-500 mb-4">Account Stats</h3>
-        <div class="space-y-4">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-500">Status</span>
-            <span class="font-medium text-emerald-600">Active</span>
-          </div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-500">Member Since</span>
-            <span class="font-medium text-foreground">
-              {authStore.user?.metadata.creationTime ? new Date(authStore.user.metadata.creationTime).toLocaleDateString() : 'N/A'}
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </div>

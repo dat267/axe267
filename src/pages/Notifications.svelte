@@ -1,5 +1,6 @@
 <script lang="ts">
     import Modal from "../lib/components/Modal.svelte";
+    import Input from "../lib/components/Input.svelte";
     import type { Notification } from "../lib/services/notificationService";
 
     let {
@@ -21,6 +22,7 @@
     let selectedNotification = $state<Notification | null>(null);
     let showModal = $state(false);
     let selectedCategory = $state("all");
+    let searchQuery = $state("");
     let observerTarget = $state<HTMLElement | null>(null);
 
     const categories = [
@@ -31,33 +33,19 @@
     ];
 
     let filteredNotifications = $derived(
-        notifications.filter((n) =>
-            selectedCategory === "all" ? true : n.category === selectedCategory,
-        ),
+        notifications.filter((n) => {
+            const matchesCategory = selectedCategory === "all" ? true : n.category === selectedCategory;
+            const matchesSearch = !searchQuery.trim() || 
+                n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                n.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                n.source.toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesCategory && matchesSearch;
+        })
     );
     let unreadCount = $derived(filteredNotifications.length);
 
-    $effect(() => {
-        if (showModal) {
-            window.history.pushState({ modalOpen: true }, "");
-            
-            const handlePopState = () => {
-                if (showModal) {
-                    showModal = false;
-                }
-            };
-
-            window.addEventListener("popstate", handlePopState);
-            return () => {
-                window.removeEventListener("popstate", handlePopState);
-            };
-        }
-    });
-
     function handleClose() {
-        if (showModal) {
-            window.history.back();
-        }
+        showModal = false;
     }
 
     $effect(() => {
@@ -179,6 +167,14 @@
                 </button>
             {/each}
         </div>
+    </div>
+
+    <div class="mb-6">
+        <Input 
+            id="searchQuery"
+            bind:value={searchQuery}
+            placeholder="Search notifications by title, message, or source..."
+        />
     </div>
 
     {#if filteredNotifications.length === 0}

@@ -33,7 +33,7 @@
             title: "Sign In",
             desc: "Access your notification dashboard",
         },
-        signup: { title: "Create Account", desc: "Join NotifiDash today" },
+        signup: { title: "Create Account", desc: "Create an account to continue" },
         forgot: {
             title: "Reset Password",
             desc: "We'll send you a recovery link",

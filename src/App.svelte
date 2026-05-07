@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Router, Route, Link } from "svelte-routing";
+  import { Router, Route, Link, navigate } from "svelte-routing";
   import { signOut } from "firebase/auth";
   import { auth } from "./lib/services/firebase";
   import { authStore } from "./lib/stores/authStore.svelte.ts";
@@ -136,6 +136,7 @@
               sendLocalNotification(newest.title, {
                 body: `${newest.source}: ${newest.message}`,
                 tag: newest.id,
+                onClick: () => navigate("/notifications")
               });
             }
           }
@@ -171,7 +172,7 @@
 
 {#if authStore.loading}
   <div
-    class="flex h-screen w-full items-center justify-center bg-background text-foreground"
+    class="flex h-dvh w-full items-center justify-center overflow-hidden bg-background text-foreground"
   >
     <div class="text-sm font-bold uppercase tracking-widest text-gray-500">
       loading...
@@ -182,7 +183,7 @@
 {:else}
   <Router {url}>
     <div
-      class="flex h-screen w-full flex-col bg-background text-foreground"
+      class="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground"
     >
       <header
         class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8"

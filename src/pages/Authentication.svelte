@@ -109,7 +109,7 @@
 {/snippet}
 
 <div
-    class="flex min-h-svh w-full flex-col overflow-y-auto bg-background px-6 pt-12 pb-24 text-foreground sm:items-center sm:justify-center sm:py-12"
+    class="flex min-h-dvh w-full flex-col overflow-y-auto bg-background px-6 pt-12 pb-12 text-foreground sm:items-center sm:justify-center sm:py-12"
 >
     <div class="mx-auto w-full max-w-sm">
         <div class="mb-8 text-center sm:mb-10">

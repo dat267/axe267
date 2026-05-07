@@ -1,18 +1,22 @@
 # Project axe: Design & Performance Guidelines
 
 ## Design Principles
-- **Minimalism:** Keep the UI as clean and focused as possible. Avoid unnecessary subtitles, counters, or branding elements.
-- **Consistency:** All pages must use standardized layouts and typography.
-    - Headers: `text-2xl font-bold tracking-tight mb-8`.
-    - Content Padding: Global `p-8` for main sections.
-    - Buttons: `h-10 w-10` with standardized borders and icon sizes (`20`).
-- **Launcher Style:** The Home page serves as a high-level launcher displaying apps in a clean, vertical list.
+- **Minimalism:** Keep the UI clean and focused. Headers like "axe" use lowercase `text-2xl font-bold tracking-tight`.
+- **Consistency:**
+    - Headers: Use `text-2xl font-bold tracking-tight`.
+    - Content Padding: Standard `p-8` for main page sections.
+    - Component Sizing: Header buttons are `h-10 w-10`. Home/List items are `h-20` with `h-12 w-12` icon containers.
+- **Launcher Style:** The Home page acts as a vertical launcher for core applications (Notifications, Integrations, Settings).
 
 ## Performance Mandates (Extreme Optimization)
-- **Zero Motion:** Absolutely no CSS transitions, animations, or Svelte transition directives. This ensures instant interaction and reduces CPU/GPU load.
-- **Flat UI:** Avoid shadows (`shadow-*`), backdrop blurs (`backdrop-blur-*`), and semi-transparent layers that require heavy composition.
-- **Static Loading:** The loading screen is a minimal, static text indicator ("loading...") rather than an animated spinner.
+- **Minimal Motion:** Avoid unnecessary CSS transitions and animations. Interaction should feel instant.
+- **Flat UI:** Avoid heavy composition effects like `shadow-*`, `backdrop-blur-*`, or complex semi-transparent layers.
+- **Static Loading:** Use minimal, static text indicators ("loading...") instead of animated spinners for main application states.
 
 ## Feature Management
-- **Notes:** The Notes feature has been entirely removed to focus the application on core notifications and integrations.
-- **Integrations:** Maintain CLI integration and API key management as core features.
+- **Notifications:** Core feature for managing system and integration alerts.
+- **Integrations:** Core feature for CLI integration and API key management.
+- **Notes:** This feature has been entirely removed from the application.
+
+## Workflows
+- **Development:** Always run `npm run dev` at the start of a development session to ensure the Vite server is running.

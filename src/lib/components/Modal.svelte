@@ -83,7 +83,7 @@
         {/if}
       </div>
 
-      <div class="max-h-[70vh] overflow-y-auto pr-2">
+      <div class="max-h-[70dvh] overflow-y-auto pr-2">
         {@render children?.()}
       </div>
 

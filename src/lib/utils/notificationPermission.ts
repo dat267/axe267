@@ -20,16 +20,18 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return false;
 }
 
-export function sendLocalNotification(title: string, options?: NotificationOptions) {
+export function sendLocalNotification(title: string, options?: NotificationOptions & { onClick?: () => void }) {
   if (Notification.permission === "granted") {
+    const { onClick, ...notificationOptions } = options || {};
     const notification = new Notification(title, {
       icon: '/favicon.svg',
       badge: '/favicon.svg',
-      ...options
+      ...notificationOptions
     });
 
     notification.onclick = () => {
       window.focus();
+      if (onClick) onClick();
       notification.close();
     };
   }

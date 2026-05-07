@@ -192,25 +192,30 @@ ${authHeader} \\
             Standard Firebase ID token. Highly secure but expires every hour.
           </p>
           <div class="flex flex-col gap-4">
-            <div class="relative">
-              <textarea
-                readonly
-                class="h-28 w-full break-all outline-none rounded-lg border border-border bg-background p-4 pr-12 text-xs font-mono focus:ring-1 focus:ring-gray-500/50"
-                value={token ||
-                  "Click 'Generate Token' below to view your current Bearer token."}
-              ></textarea>
-              {#if token}
-                <div class="absolute right-3 top-3">
-                  <CopyButton text={token} />
-                </div>
-              {/if}
+            <div class="relative w-full overflow-hidden rounded-lg border border-border bg-surface">
+              <div class="flex items-center justify-between bg-foreground/5 px-4 py-2 border-b border-border">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Firebase Bearer Token</span>
+                {#if token}
+                  <CopyButton text={token} label="Copy" />
+                {/if}
+              </div>
+              <div class="p-4">
+                <textarea
+                  readonly
+                  class="h-24 w-full break-all outline-none bg-transparent text-xs font-mono text-foreground resize-none"
+                  value={token ||
+                    "Click 'Generate Token' below to view your current Bearer token."}
+                ></textarea>
+              </div>
             </div>
-            <Button
-              onclick={refreshToken}
-              {loading}
-              className="w-full md:w-auto"
-              >{token ? "Refresh Token" : "Generate Token"}</Button
-            >
+            <div class="flex">
+              <Button
+                onclick={refreshToken}
+                {loading}
+                className="w-full md:w-auto"
+                >{token ? "Refresh Token" : "Generate Token"}</Button
+              >
+            </div>
           </div>
         </div>
       {:else}

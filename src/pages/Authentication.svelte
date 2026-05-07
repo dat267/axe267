@@ -148,7 +148,7 @@
                 </Button>
                 <button
                     onclick={() => signOut(auth)}
-                    class="mt-6 block w-full text-center text-xs font-bold uppercase tracking-wider text-gray-400 transition-colors hover:text-rose-500"
+                    class="mt-6 block w-full text-center text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-rose-500"
                 >
                     Sign out
                 </button>

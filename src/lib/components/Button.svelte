@@ -17,7 +17,7 @@
     children?: any;
   }>();
 
-  const baseStyles = "rounded-lg px-4 py-2.5 font-semibold transition-colors focus:outline-none disabled:opacity-50 inline-flex items-center justify-center gap-2";
+  const baseStyles = "rounded-lg px-4 py-2.5 font-semibold focus:outline-none disabled:opacity-50 inline-flex items-center justify-center gap-2";
   
   const variants = {
     primary: "bg-gray-800 text-white hover:bg-gray-900 dark:bg-gray-700 dark:hover:bg-gray-600",
@@ -34,7 +34,7 @@
   {onclick}
 >
   {#if loading}
-    <div class="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+    <div class="h-4 w-4 rounded-full border-2 border-current border-t-transparent"></div>
   {/if}
   {@render children?.()}
 </button>

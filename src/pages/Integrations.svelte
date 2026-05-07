@@ -207,11 +207,8 @@ ${authHeader} \\
 {/snippet}
 
 <div>
-  <div class="mb-10 text-center md:text-left">
-    <h1 class="text-2xl font-bold">CLI Integration</h1>
-    <p class="mt-2 text-sm text-gray-400">
-      Build and copy a custom curl command to push notifications.
-    </p>
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold tracking-tight">CLI Integration</h1>
   </div>
 
   <section class="space-y-8">
@@ -226,7 +223,7 @@ ${authHeader} \\
           {#each ["bearer", "apikey"] as method}
             <button
               onclick={() => (keyState.method = method as any)}
-              class="grow rounded-md px-3 py-1.5 text-xs font-medium transition-colors sm:flex-initial {keyState.method ===
+              class="grow rounded-md px-3 py-1.5 text-xs font-medium sm:flex-initial {keyState.method ===
               method
                 ? 'bg-gray-800 text-white dark:bg-gray-700'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}"
@@ -254,7 +251,7 @@ ${authHeader} \\
                 <button
                   onclick={() => copyToClipboard(token, "token")}
                   aria-label="Copy Bearer token"
-                  class="absolute right-3 top-3 flex items-center gap-1.5 rounded-md p-1.5 transition-colors {copied.token
+                  class="absolute right-3 top-3 flex items-center gap-1.5 rounded-md p-1.5 {copied.token
                     ? 'text-emerald-500'
                     : 'text-gray-400 hover:bg-gray-500/10 hover:text-gray-600'}"
                 >
@@ -299,7 +296,7 @@ ${authHeader} \\
                   <button
                     onclick={() => copyToClipboard(keyState.generated, "key")}
                     aria-label="Copy API key"
-                    class="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 transition-colors {copied.key
+                    class="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 {copied.key
                       ? 'bg-emerald-500 text-white'
                       : 'bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30'}"
                   >

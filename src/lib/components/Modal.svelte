@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { fade, scale } from "svelte/transition";
 
   let {
     show = false,
@@ -52,14 +51,13 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+      class="absolute inset-0 bg-black/40"
       onclick={onClose}
     ></div>
 
     <!-- Modal Content -->
     <div
-      class="relative w-full max-w-lg overflow-hidden rounded-xl bg-surface p-6 shadow-2xl transition-all"
-      transition:scale={{ duration: 200, start: 0.95 }}
+      class="relative w-full max-w-lg overflow-hidden rounded-xl bg-surface p-6"
     >
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-lg font-bold text-foreground">{title}</h3>

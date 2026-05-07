@@ -108,7 +108,7 @@
 
 {#snippet notificationCard(notif: Notification)}
     <div
-        class="group relative flex h-20 w-full cursor-pointer items-stretch gap-4 border-b border-gray-100 px-1 py-3 transition-colors hover:bg-gray-100/50 dark:border-gray-800/50 dark:hover:bg-gray-800/30"
+        class="group relative flex h-20 w-full cursor-pointer items-stretch gap-4 border-b border-gray-100 px-1 py-3 hover:bg-gray-100/50 dark:border-gray-800/50 dark:hover:bg-gray-800/30"
         onclick={() => handleView(notif)}
         onkeydown={(e) => e.key === 'Enter' && handleView(notif)}
         role="button"
@@ -141,7 +141,7 @@
 
         <div class="flex shrink-0 items-center pr-1">
             <button
-                class="flex items-center justify-center rounded-md p-2 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                class="flex items-center justify-center rounded-md p-2 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
                 onclick={(e) => handleDismiss(e, notif.id)}
                 aria-label="Dismiss notification"
             >
@@ -164,20 +164,15 @@
 {/snippet}
 
 <div>
-    <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-            <h1 class="text-xl font-bold md:text-2xl">{title}</h1>
-            <p class="text-xs text-gray-500 dark:text-gray-400 md:text-sm">
-                Showing {unreadCount} of {totalCount} notifications
-            </p>
-        </div>
+    <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+        <h1 class="text-2xl font-bold tracking-tight">{title}</h1>
         <div class="flex w-full gap-1 rounded-lg bg-gray-500/5 p-1 sm:w-auto">
             {#each categories as cat}
                 <button
                     onclick={() => (selectedCategory = cat.id)}
-                    class="flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-all sm:flex-none {selectedCategory ===
+                    class="flex-1 rounded-md px-3 py-1.5 text-xs font-semibold sm:flex-none {selectedCategory ===
                     cat.id
-                        ? 'bg-white text-foreground shadow-sm dark:bg-gray-700 dark:text-white'
+                        ? 'bg-white text-foreground dark:bg-gray-700 dark:text-white'
                         : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}"
                 >
                     {cat.label}

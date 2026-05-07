@@ -34,6 +34,6 @@
     {placeholder}
     {required}
     {disabled}
-    class="block w-full border-b border-border bg-transparent py-2 outline-none focus:border-gray-500 transition-colors disabled:opacity-50"
+    class="block w-full border-b border-border bg-transparent py-2 outline-none focus:border-gray-500 disabled:opacity-50"
   />
 </div>

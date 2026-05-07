@@ -124,16 +124,15 @@
 </script>
 
 <div>
-  <div class="mb-12">
+  <div class="mb-8">
     <h1 class="text-2xl font-bold tracking-tight">Account Settings</h1>
-    <p class="text-sm text-gray-500 dark:text-gray-400">Manage your profile, security, and preferences</p>
   </div>
 
   <div class="grid grid-cols-1 gap-8 lg:grid-cols-12">
     <!-- Main Settings Area -->
     <div class="lg:col-span-8 space-y-8">
       {#if showReauth}
-        <section class="rounded-xl border border-border bg-surface p-6 shadow-sm">
+        <section class="rounded-xl border border-border bg-surface p-6">
           <h2 class="text-lg font-semibold text-foreground mb-1">
             Security Confirmation
           </h2>
@@ -170,7 +169,7 @@
         </section>
       {/if}
 
-      <section class="rounded-xl border border-border bg-surface p-6 shadow-sm">
+      <section class="rounded-xl border border-border bg-surface p-6">
         <h2 class="mb-6 text-lg font-semibold">Email Address</h2>
 
         {#if !showReauth}
@@ -208,7 +207,7 @@
         </div>
       </section>
 
-      <section class="rounded-xl border border-rose-500/20 bg-surface p-6 shadow-sm">
+      <section class="rounded-xl border border-rose-500/20 bg-surface p-6">
         <h2 class="text-lg font-semibold text-rose-600 dark:text-rose-400">
           Danger Zone
         </h2>

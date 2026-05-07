@@ -20,7 +20,6 @@
   import Profile from "./pages/Settings.svelte";
   import Integrations from "./pages/Integrations.svelte";
   import Notifications from "./pages/Notifications.svelte";
-  import Notes from "./pages/Notes.svelte";
 
   let { url = "" } = $props();
 
@@ -163,6 +162,8 @@
     fill="none"
     stroke="currentColor"
     stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
   >
     {@html svg}
   </svg>
@@ -172,32 +173,47 @@
   <div
     class="flex h-screen w-full items-center justify-center bg-background text-foreground"
   >
-    <div
-      class="h-10 w-10 animate-spin rounded-full border-4 border-gray-500 border-t-transparent"
-    ></div>
+    <div class="text-sm font-bold uppercase tracking-widest text-gray-500">
+      loading...
+    </div>
   </div>
 {:else if !authStore.user || !authStore.isVerified}
   <Auth />
 {:else}
   <Router {url}>
     <div
-      class="flex h-screen w-full flex-col bg-background text-foreground transition-colors duration-300"
+      class="flex h-screen w-full flex-col bg-background text-foreground"
     >
       <header
-        class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background/80 p-4 backdrop-blur-md md:px-8"
+        class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8"
       >
         <div class="flex items-center gap-2">
+          <!-- Back Button (Conditional) -->
           {#if currentPath !== "/"}
             <Link
               to="/"
-              class="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-500/10"
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-200 dark:border-white/20 dark:bg-white/5 dark:text-gray-100 dark:hover:bg-white/10"
               aria-label="Back to home"
             >
-              {@render icon('<path d="M19 12H5M12 19l-7-7 7-7"></path>', 20)}
+              {@render icon('<path d="m12 19-7-7 7-7M19 12H5"></path>', 20)}
             </Link>
+          {:else}
+            <!-- Placeholder for back button when on home page -->
+            <div
+              class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed dark:border-white/10 dark:bg-white/5 dark:text-gray-600"
+              aria-label="Already on home page"
+            >
+              {@render icon('<path d="m12 19-7-7 7-7M19 12H5"></path>', 20)}
+            </div>
           {/if}
-          <Link to="/" class="group flex items-center ml-2 transition-all">
-            <div class="h-8 w-8 rounded-lg border border-border bg-surface flex items-center justify-center text-foreground font-black text-[10px] shadow-sm transition-all group-hover:border-gray-500/50 group-hover:bg-gray-500/5 dark:bg-white/5 dark:backdrop-blur-md">AXE</div>
+
+          <!-- Home Icon -->
+          <Link
+            to="/"
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-200 dark:border-white/20 dark:bg-white/5 dark:text-gray-100 dark:hover:bg-white/10"
+            aria-label="Go to home page"
+          >
+            {@render icon('<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline>', 20)}
           </Link>
         </div>
 
@@ -207,50 +223,56 @@
               onclick={handleClearAll}
               disabled={notifications.length === 0}
               aria-label="Clear all notifications"
-              class="flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-medium transition-all {showClearConfirm
+              class="flex h-10 w-10 items-center justify-center rounded-lg border {showClearConfirm
                 ? 'border-red-500 bg-red-500 text-white hover:bg-red-600'
-                : 'border-border text-foreground hover:bg-gray-500/10'} disabled:opacity-50"
+                : 'border-gray-300 bg-white text-gray-900 hover:bg-gray-200 dark:border-white/20 dark:bg-white/5 dark:text-gray-100 dark:hover:bg-white/10'} disabled:opacity-50"
             >
               {#if showClearConfirm}
-                {@render icon('<path d="M20 6L9 17l-5-5"></path>')}
+                {@render icon('<path d="M20 6L9 17l-5-5"></path>', 20)}
               {:else}
                 {@render icon(
                   '<path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>',
+                  20,
                 )}
               {/if}
             </button>
           {/if}
-          
+
           <button
             onclick={toggleTheme}
-            class="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-gray-600 transition-colors hover:bg-gray-500/10 dark:text-gray-400"
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 hover:bg-gray-200 dark:border-white/20 dark:bg-white/5 dark:text-gray-100 dark:hover:bg-white/10"
             aria-label="Toggle theme"
           >
             {#if darkMode}
               {@render icon(
                 '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>',
+                20,
               )}
             {:else}
               {@render icon(
                 '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>',
+                20,
               )}
             {/if}
           </button>
-          
+
           <button
             onclick={handleLogout}
-            class="flex h-10 w-10 items-center justify-center rounded-lg border border-border text-red-500 transition-colors hover:bg-red-500/10"
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 bg-white text-red-500 hover:bg-red-50 dark:border-white/20 dark:bg-white/5 dark:hover:bg-red-500/10"
             aria-label="Sign out"
           >
             {@render icon(
               '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line>',
+              20,
             )}
           </button>
         </div>
       </header>
 
       <main class="flex flex-1 overflow-y-auto overflow-x-hidden">
-        <section class="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 py-8 md:px-8 md:py-12">
+        <section
+          class="mx-auto flex min-h-full w-full max-w-4xl flex-col p-8"
+        >
           <Route path="/"><Home /></Route>
           <Route path="/notifications">
             <Notifications
@@ -262,7 +284,6 @@
               onDismiss={dismiss}
             />
           </Route>
-          <Route path="/notes"><Notes /></Route>
           <Route path="/integrations"><Integrations /></Route>
           <Route path="/settings"><Profile /></Route>
         </section>

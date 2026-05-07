@@ -12,6 +12,7 @@
   import CodeBlock from "../lib/components/CodeBlock.svelte";
   import Input from "../lib/components/Input.svelte";
   import Alert from "../lib/components/Alert.svelte";
+  import CopyButton from "../lib/components/CopyButton.svelte";
 
   let loading = $state(false);
   let error = $state("");
@@ -32,8 +33,6 @@
     message: "Message from curl",
     category: "system",
   });
-
-  let copied = $state({ token: false, key: false });
 
   const types = ["info", "success", "warning", "error"];
   const categories = ["system", "mobile", "desktop"];
@@ -137,54 +136,7 @@ ${authHeader} \\
       console.error(e);
     }
   }
-
-  async function copyToClipboard(text: string, target: "token" | "key") {
-    try {
-      if (navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        const ta = document.createElement("textarea");
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        ta.remove();
-      }
-      copied[target] = true;
-      setTimeout(() => (copied[target] = false), 2000);
-    } catch (err) {
-      console.error(err);
-    }
-  }
 </script>
-
-{#snippet iconCopy()}
-  <svg
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="2"
-    ><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path
-      d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-    ></path></svg
-  >
-{/snippet}
-
-{#snippet iconCheck()}
-  <span class="text-[10px] font-bold uppercase tracking-wider">Copied!</span>
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    stroke-width="3"
-    stroke-linecap="round"
-    stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg
-  >
-{/snippet}
 
 {#snippet selectDropdown(id: string, label: string, options: string[])}
   <div>
@@ -248,15 +200,9 @@ ${authHeader} \\
                   "Click 'Generate Token' below to view your current Bearer token."}
               ></textarea>
               {#if token}
-                <button
-                  onclick={() => copyToClipboard(token, "token")}
-                  aria-label="Copy Bearer token"
-                  class="absolute right-3 top-3 flex items-center gap-1.5 rounded-md p-1.5 {copied.token
-                    ? 'text-emerald-500'
-                    : 'text-gray-400 hover:bg-gray-500/10 hover:text-gray-600'}"
-                >
-                  {#if copied.token}{@render iconCheck()}{:else}{@render iconCopy()}{/if}
-                </button>
+                <div class="absolute right-3 top-3">
+                  <CopyButton text={token} />
+                </div>
               {/if}
             </div>
             <Button
@@ -293,15 +239,10 @@ ${authHeader} \\
                     value={keyState.generated}
                     class="min-w-0 grow outline-none rounded border border-emerald-500/30 bg-background px-3 py-2 text-xs font-mono"
                   />
-                  <button
-                    onclick={() => copyToClipboard(keyState.generated, "key")}
-                    aria-label="Copy API key"
-                    class="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 {copied.key
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-emerald-500/20 text-emerald-600 hover:bg-emerald-500/30'}"
-                  >
-                    {#if copied.key}{@render iconCheck()}{:else}{@render iconCopy()}{/if}
-                  </button>
+                  <CopyButton 
+                    text={keyState.generated} 
+                    className="bg-emerald-500/10!"
+                  />
                 </div>
                 <Button
                   variant="secondary"

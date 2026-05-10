@@ -22,7 +22,9 @@
   },
   "dependencies": {
     "dotenv": "^17.4.2",
+    "epubjs": "^0.3.93",
     "firebase": "^12.12.1",
+    "jszip": "^3.10.1",
     "node-fetch": "^3.3.2",
     "svelte-routing": "^2.13.0"
   }

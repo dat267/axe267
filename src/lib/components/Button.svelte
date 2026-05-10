@@ -33,8 +33,11 @@
   class="{baseStyles} {variants[variant]} {className}"
   {onclick}
 >
-  {#if loading}
-    <div class="h-4 w-4 rounded-full border-2 border-current border-t-transparent"></div>
-  {/if}
-  {@render children?.()}
+  <div class="inline-flex items-center gap-2">
+    {#if loading}
+      <span class="text-[10px] font-bold uppercase tracking-widest opacity-70">loading...</span>
+    {:else}
+      {@render children?.()}
+    {/if}
+  </div>
 </button>

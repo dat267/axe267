@@ -31,14 +31,14 @@
     const contentMap = {
         signin: {
             title: "Sign In",
-            desc: "Access your notification dashboard",
+            desc: "Access your dashboard (verification required)",
         },
         signup: { title: "Create Account", desc: "Create an account to continue" },
         forgot: {
             title: "Reset Password",
             desc: "We'll send you a recovery link",
         },
-        verify: { title: "Verify your email", desc: "" },
+        verify: { title: "Verify your email", desc: "Check your inbox to activate your account" },
     };
 
     async function executeAction<T>(action: () => Promise<T>, successMsg = "") {
@@ -70,8 +70,10 @@
                     password,
                 );
                 await sendEmailVerification(cred.user);
-                mode = "signin";
-            }, "Account created! A verification email has been sent.");
+                // Note: user is already logged in by Firebase, 
+                // effect will switch mode to 'verify' automatically.
+                message = "Account created! A verification email has been sent.";
+            });
         } else if (mode === "forgot") {
             await executeAction(async () => {
                 await sendPasswordResetEmail(auth, email);

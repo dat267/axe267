@@ -6,7 +6,7 @@
     deleteUser,
   } from "firebase/auth";
   import { auth } from "../lib/services/firebase";
-  import { authStore } from "../lib/stores/authStore.svelte";
+  import { authStore } from "../lib/stores/authStore.svelte.ts";
   import { getErrorMessage } from "../lib/utils/authErrors";
   import Input from "../lib/components/Input.svelte";
   import Button from "../lib/components/Button.svelte";
@@ -89,9 +89,6 @@
         password = "";
 
         if (pendingAction === "email") {
-          // Manually trigger the follow-up action without passing an event
-          // since handleUpdateEmail now expects one. We can just call the logic.
-          // Alternatively, we can refactor the logic out.
           await performUpdateEmail();
         } else if (pendingAction === "delete") {
           await handleDeleteAccount();
@@ -124,107 +121,55 @@
 </script>
 
 <div>
-  <div class="mb-8">
-    <h1 class="text-2xl font-bold tracking-tight">Account Settings</h1>
+  <div class="mb-12">
+    <h1 class="text-2xl font-bold tracking-tight lowercase">account settings</h1>
+    <p class="text-sm text-gray-500 mt-1">Manage your identity and security.</p>
   </div>
 
-  <div class="max-w-3xl space-y-8">
-    <!-- Main Settings Area -->
-    <div class="space-y-8">
-      {#if showReauth}
-        <section class="rounded-xl border border-border bg-surface p-6">
-          <h2 class="text-lg font-semibold text-foreground mb-1">
-            Security Confirmation
-          </h2>
-          <p class="mb-6 text-sm text-gray-500">
-            For your security, please confirm your password to proceed.
-          </p>
+  <div class="space-y-12">
+    <!-- Security Confirmation -->
+    {#if showReauth}
+      <div class="border-b border-border/50 pb-10">
+        <h2 class="text-lg font-bold tracking-tight lowercase mb-1">security confirmation</h2>
+        <p class="mb-8 text-sm text-gray-500">Confirm your password to proceed.</p>
 
-          <form onsubmit={handleReauth} class="max-w-md space-y-4">
-            <Input
-              type="password"
-              id="password"
-              label="Password"
-              bind:value={password}
-              placeholder="••••••••"
-              required
-            />
-            <div class="flex gap-3 pt-2">
-              <Button type="submit" {loading} className="grow">
-                Confirm
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                onclick={() => {
-                  showReauth = false;
-                  password = "";
-                  error = "";
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </section>
-      {/if}
-
-      <section class="rounded-xl border border-border bg-surface p-6">
-        <h2 class="mb-6 text-lg font-semibold">Email Address</h2>
-
-        {#if !showReauth}
-          <Alert type="error" message={error} />
-        {/if}
-        <Alert type="success" {message} />
-
-        <div class="space-y-6">
-          <div class="flex flex-col gap-1 min-w-0">
-            <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Current Email</span>
-            <p class="text-sm font-medium truncate">{authStore.user?.email}</p>
+        <form onsubmit={handleReauth} class="max-w-md space-y-6">
+          <Input type="password" id="password" label="Password" bind:value={password} placeholder="••••••••" required />
+          <div class="flex gap-4">
+            <Button type="submit" {loading} className="grow">confirm</Button>
+            <Button type="button" variant="ghost" onclick={() => { showReauth = false; password = ""; error = ""; }}>cancel</Button>
           </div>
+        </form>
+      </div>
+    {/if}
 
-          <form onsubmit={handleUpdateEmail} class="space-y-6 pt-6 border-t border-border">
-            <Input
-              type="email"
-              id="newEmail"
-              label="New Email Address"
-              bind:value={newEmail}
-              disabled={showReauth}
-              placeholder="new@example.com"
-              required
-            />
-            <div class="flex justify-start">
-              <Button
-                type="submit"
-                variant="secondary"
-                disabled={loading || showReauth}
-                className="w-full sm:w-auto"
-              >
-                Update Email
-              </Button>
-            </div>
-          </form>
-        </div>
-      </section>
+    <!-- Email Management -->
+    <div class="border-b border-border/50 pb-10">
+      <h2 class="text-lg font-bold tracking-tight lowercase mb-8">email address</h2>
+      
+      {#if !showReauth}<Alert type="error" message={error} />{/if}
+      <Alert type="success" {message} />
 
-      <section class="rounded-xl border border-rose-500/20 bg-surface p-6">
-        <h2 class="text-lg font-semibold text-rose-600 dark:text-rose-400">
-          Danger Zone
-        </h2>
-        <p class="mt-1 text-sm text-gray-500">
-          Deleting your account is permanent and cannot be undone. All your notifications and API keys will be lost.
-        </p>
-        <div class="mt-6 flex justify-start">
-          <Button
-            variant="danger"
-            onclick={handleDeleteAccount}
-            disabled={loading || showReauth}
-            className="w-full sm:w-auto"
-          >
-            Delete Account
-          </Button>
+      <div class="space-y-8">
+        <div class="flex flex-col gap-1.5 min-w-0">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500/50">current email</span>
+          <p class="text-sm font-bold truncate">{authStore.user?.email}</p>
         </div>
-      </section>
+
+        <form onsubmit={handleUpdateEmail} class="space-y-8 pt-8 border-t border-border/30">
+          <Input type="email" id="newEmail" label="New Email Address" bind:value={newEmail} disabled={showReauth} placeholder="new@example.com" required />
+          <Button type="submit" variant="secondary" disabled={loading || showReauth} className="w-full sm:w-auto">update email</Button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="pb-20">
+      <h2 class="text-lg font-bold tracking-tight lowercase text-rose-500 mb-2">danger zone</h2>
+      <p class="text-sm text-gray-500 max-w-2xl mb-8">
+        Deleting your account is permanent. This will remove all your data, notifications, and integration keys instantly.
+      </p>
+      <Button variant="danger" onclick={handleDeleteAccount} disabled={loading || showReauth} className="w-full sm:w-auto">delete account</Button>
     </div>
   </div>
 </div>

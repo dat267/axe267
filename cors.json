@@ -1,0 +1,13 @@
+[
+  {
+    "origin": [
+      "http://localhost:5173", 
+      "http://100.64.0.1:5173",
+      "https://axe267.web.app", 
+      "https://axe267.firebaseapp.com"
+    ],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Range"],
+    "maxAgeSeconds": 3600
+  }
+]

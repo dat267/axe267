@@ -57,6 +57,8 @@
     form.category = sample.category;
   }
 
+  let automationTab = $state("bash");
+
   const projectId =
     import.meta.env.VITE_FIREBASE_PROJECT_ID || "[PROJECT_ID_MISSING]";
   const apiUrl = `https://asia-southeast1-${projectId}.cloudfunctions.net/api/notify`;
@@ -66,6 +68,114 @@
       ? `-H "Authorization: Bearer ${token || "[YOUR_TOKEN]"}"`
       : `-H "x-api-key: ${keyState.selected || "[YOUR_API_KEY]"}"`,
   );
+
+  const authHeaderName = $derived(
+    keyState.method === "bearer" ? "Authorization" : "x-api-key",
+  );
+  const authHeaderValue = $derived(
+    keyState.method === "bearer"
+      ? `Bearer ${token || "[YOUR_TOKEN]"}`
+      : keyState.selected || "[YOUR_API_KEY]",
+  );
+
+  const bashScript = $derived(`#!/bin/bash
+# Axe Notification Mirror (Linux)
+# Forwards system notifications to your axe dashboard.
+# Requires: dbus-monitor (usually pre-installed)
+
+API_URL="${apiUrl}"
+
+echo "Listening for system notifications..."
+
+dbus-monitor "interface='org.freedesktop.Notifications',member='Notify'" | \\
+while read -r line; do
+  # Extract strings from dbus output (app name, summary, body)
+  if [[ "$line" == *"string"* ]]; then
+    VALUE=$(echo "$line" | cut -d '"' -f 2)
+    
+    # Send to axe
+    curl -s -X POST "$API_URL" \\
+      ${authHeader} \\
+      -H "Content-Type: application/json" \\
+      -d "{
+        \\"type\\": \\"info\\",
+        \\"source\\": \\"Desktop Mirror\\",
+        \\"title\\": \\"System Notification\\",
+        \\"message\\": \\"$VALUE\\",
+        \\"category\\": \\"desktop\\"
+      }" > /dev/null
+  fi
+done`);
+
+  const powershellScript = $derived(`# Axe Notification Mirror (Windows)
+# Forwards Windows Toast notifications to axe.
+# Note: Requires "Notification Access" permission for PowerShell.
+
+Add-Type -AssemblyName "System.Runtime.WindowsRuntime"
+$Asm = [Reflection.Assembly]::LoadWithPartialName("System.Runtime.WindowsRuntime")
+$Listener = [Windows.UI.Notifications.Management.UserNotificationListener]::Current
+$AccessStatus = $Listener.RequestAccessAsync().GetResults()
+
+if ($AccessStatus -ne "Allowed") {
+    Write-Error "Please enable Notification Access for PowerShell in Windows Privacy Settings."
+    return
+}
+
+Write-Host "Monitoring notifications..."
+$LastId = 0
+
+while($true) {
+    $Notifications = $Listener.GetNotificationsAsync([Windows.UI.Notifications.NotificationKinds]::Toast).GetResults()
+    foreach ($n in $Notifications) {
+        if ($n.Id -gt $LastId) {
+            $Body = @{
+                type = "info"
+                source = "Windows Mirror"
+                title = "System Notification"
+                message = "New notification from system" # Toast content parsing is restricted
+                category = "desktop"
+            } | ConvertTo-Json -Compress
+            
+            Invoke-RestMethod -Method Post -Uri "${apiUrl}" -Headers @{"${authHeaderName}"="${authHeaderValue}"} -ContentType "application/json" -Body $Body
+            $LastId = $n.Id
+        }
+    }
+    Start-Sleep -Seconds 2
+}`);
+
+  const androidScript = $derived(`#!/bin/bash
+# Axe Notification Mirror (Android / Termux)
+# Requires: Termux:API app and 'pkg install termux-api jq'
+
+API_URL="${apiUrl}"
+LAST_ID=""
+
+echo "Monitoring Android notifications..."
+
+while true; do
+  # Get the latest notification
+  NEW_NOTIF=$(termux-notification-list | jq -r '.[0]')
+  ID=$(echo "$NEW_NOTIF" | jq -r '.id')
+  
+  if [[ "$ID" != "$LAST_ID" && "$ID" != "null" ]]; then
+    TITLE=$(echo "$NEW_NOTIF" | jq -r '.title')
+    MSG=$(echo "$NEW_NOTIF" | jq -r '.content')
+    
+    curl -s -X POST "$API_URL" \\
+      ${authHeader} \\
+      -H "Content-Type: application/json" \\
+      -d "{
+        \\"type\\": \\"info\\",
+        \\"source\\": \\"Android Mirror\\",
+        \\"title\\": \\"$TITLE\\",
+        \\"message\\": \\"$MSG\\",
+        \\"category\\": \\"mobile\\"
+      }" > /dev/null
+      
+    LAST_ID="$ID"
+  fi
+  sleep 2
+done`);
 
   const curlCommand = $derived(`curl -X POST "${apiUrl}" \\
 ${authHeader} \\
@@ -166,21 +276,21 @@ ${authHeader} \\
   <section class="space-y-8">
     <div class="rounded-xl border border-border bg-surface p-6">
       <div
-        class="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+        class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
         <h2 class="text-lg font-semibold">1. Authentication</h2>
         <div
-          class="flex grow rounded-lg border border-border bg-background p-1 sm:grow-0"
+          class="flex w-full rounded-lg border border-border bg-background p-1 sm:w-auto"
         >
-          {#each ["bearer", "apikey"] as method}
+          {#each [{ id: "bearer", label: "Bearer Token" }, { id: "apikey", label: "API Key" }] as method}
             <button
-              onclick={() => (keyState.method = method as any)}
-              class="grow rounded-md px-3 py-1.5 text-xs font-medium sm:flex-initial {keyState.method ===
-              method
+              onclick={() => (keyState.method = method.id as any)}
+              class="flex-1 rounded-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider sm:flex-initial {keyState.method ===
+              method.id
                 ? 'bg-gray-800 text-white dark:bg-gray-700'
                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}"
             >
-              {method === "bearer" ? "Bearer Token" : "API Key"}
+              {method.label}
             </button>
           {/each}
         </div>
@@ -380,6 +490,40 @@ ${authHeader} \\
         This command updates live as you change the fields above.
       </p>
       <CodeBlock code={curlCommand} onCopy={randomizeContent} />
+    </div>
+
+    <div class="space-y-4">
+      <div
+        class="flex flex-col gap-4 px-1 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <h2 class="text-lg font-semibold">4. Notification Mirroring</h2>
+        <div
+          class="flex w-full rounded-lg border border-border bg-background p-1 sm:w-auto"
+        >
+          {#each ["bash", "powershell", "android"] as scriptMode}
+            <button
+              onclick={() => (automationTab = scriptMode)}
+              class="flex-1 rounded-md px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider sm:flex-none {automationTab ===
+              scriptMode
+                ? 'bg-gray-800 text-white dark:bg-gray-700'
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}"
+            >
+              {scriptMode}
+            </button>
+          {/each}
+        </div>
+      </div>
+      <p class="px-1 text-sm text-gray-500">
+        Run these scripts to mirror system notifications (toasts) directly to
+        your axe dashboard in real-time.
+      </p>
+      {#if automationTab === "bash"}
+        <CodeBlock code={bashScript} title="Linux Mirror (DBus)" />
+      {:else if automationTab === "powershell"}
+        <CodeBlock code={powershellScript} title="Windows Mirror (WinRT)" />
+      {:else}
+        <CodeBlock code={androidScript} title="Android Mirror (Termux)" />
+      {/if}
     </div>
   </section>
 </div>

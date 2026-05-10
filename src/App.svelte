@@ -287,6 +287,12 @@
           </Route>
           <Route path="/integrations"><Integrations /></Route>
           <Route path="/settings"><Profile /></Route>
+
+          <footer class="mt-auto pt-20 pb-10 text-center">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500/30">
+              axe &bull; {new Date().getFullYear()}
+            </span>
+          </footer>
         </section>
       </main>
     </div>

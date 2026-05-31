@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import {
     verifyBeforeUpdateEmail,
     reauthenticateWithCredential,
@@ -6,7 +6,7 @@
     deleteUser,
   } from "firebase/auth";
   import { auth } from "../lib/services/firebase";
-  import { authStore } from "../lib/stores/authStore.svelte.ts";
+  import { authStore } from "../lib/stores/authStore.svelte.js";
   import { getErrorMessage } from "../lib/utils/authErrors";
   import Input from "../lib/components/Input.svelte";
   import Button from "../lib/components/Button.svelte";
@@ -18,9 +18,9 @@
   let message = $state("");
   let loading = $state(false);
   let showReauth = $state(false);
-  let pendingAction = $state<"email" | "delete" | null>(null);
+  let pendingAction = $state(null);
 
-  async function handleUpdateEmail(e: SubmitEvent) {
+  async function handleUpdateEmail(e) {
     e.preventDefault();
     error = "";
     message = "";
@@ -34,7 +34,7 @@
           "A verification email has been sent to your new address. Please verify it to complete the change.";
         newEmail = "";
       }
-    } catch (e: any) {
+    } catch (e) {
       if (e.code === "auth/requires-recent-login") {
         showReauth = true;
         error = getErrorMessage(e.code);
@@ -62,7 +62,7 @@
       if (auth.currentUser) {
         await deleteUser(auth.currentUser);
       }
-    } catch (e: any) {
+    } catch (e) {
       if (e.code === "auth/requires-recent-login") {
         showReauth = true;
         error = getErrorMessage(e.code);
@@ -74,7 +74,7 @@
     }
   }
 
-  async function handleReauth(e: SubmitEvent) {
+  async function handleReauth(e) {
     e.preventDefault();
     error = "";
     loading = true;
@@ -94,7 +94,7 @@
           await handleDeleteAccount();
         }
       }
-    } catch (e: any) {
+    } catch (e) {
       error = getErrorMessage(e.code || "auth/invalid-credential");
     } finally {
       loading = false;
@@ -112,7 +112,7 @@
           "A verification email has been sent to your new address. Please verify it to complete the change.";
         newEmail = "";
       }
-    } catch (e: any) {
+    } catch (e) {
       error = getErrorMessage(e.code || e.message);
     } finally {
       loading = false;

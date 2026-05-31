@@ -20,7 +20,7 @@ class ThemeStore {
     this.applyTheme();
   }
 
-  private applyTheme() {
+  applyTheme() {
     if (typeof document !== "undefined") {
       const root = document.documentElement;
       root.classList.toggle("dark", this.#darkMode);

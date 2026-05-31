@@ -1,33 +1,32 @@
-<script lang="ts">
+<script>
   import { onMount } from "svelte";
   import { Router, Route, Link, navigate } from "svelte-routing";
   import { signOut } from "firebase/auth";
   import { auth } from "./lib/services/firebase";
-  import { authStore } from "./lib/stores/authStore.svelte.ts";
-  import { themeStore } from "./lib/stores/themeStore.svelte.ts";
+  import { authStore } from "./lib/stores/authStore.svelte.js";
+  import { themeStore } from "./lib/stores/themeStore.svelte.js";
   import { ICONS } from "./lib/utils/icons";
   import {
     subscribeNotifications,
     deleteNotification,
     clearAllNotifications,
     getNotificationsCount,
-    type Notification,
   } from "./lib/services/notificationService";
   import {
     requestNotificationPermission,
     sendLocalNotification,
-  } from "./lib/utils/notificationPermission.ts";
+  } from "./lib/utils/notificationPermission.js";
   import Auth from "./pages/Authentication.svelte";
   import Home from "./pages/Home.svelte";
   import Lazy from "./lib/components/Lazy.svelte";
 
   let { url = "" } = $props();
 
-  let notifications = $state<Notification[]>([]);
+  let notifications = $state([]);
   let totalNotificationsCount = $state(0);
   let notificationLimit = $state(20);
   let initialLoadDone = false;
-  let unsubscribe: (() => void) | null = null;
+  let unsubscribe = null;
   let currentPath = $state(window.location.pathname);
 
   onMount(() => {
@@ -35,7 +34,6 @@
     window.addEventListener("popstate", handleLocationChange);
     const originalPushState = history.pushState;
     history.pushState = function() {
-      // @ts-ignore
       originalPushState.apply(this, arguments);
       handleLocationChange();
     };
@@ -56,12 +54,12 @@
     try { await signOut(auth); } catch (e) { console.error(e); }
   };
 
-  const dismiss = async (id: string) => {
+  const dismiss = async (id) => {
     try { await deleteNotification(id); } catch (e) { console.error(e); }
   };
 
   let showClearConfirm = $state(false);
-  let confirmTimer: ReturnType<typeof setTimeout>;
+  let confirmTimer;
 
   const handleClearAll = async () => {
     if (!showClearConfirm) {
@@ -89,7 +87,7 @@
       loadTotalNotificationsCount();
 
       unsubscribe = subscribeNotifications(
-        user.email!,
+        user.email,
         (data) => {
           if (initialLoadDone && data.length > 0) {
             const newest = data[0];
@@ -117,7 +115,7 @@
   });
 </script>
 
-{#snippet icon(svg: string, size = 18)}
+{#snippet icon(svg, size = 18)}
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     {@html svg}
   </svg>

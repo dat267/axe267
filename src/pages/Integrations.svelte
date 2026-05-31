@@ -1,44 +1,43 @@
-<script lang="ts">
+<script>
   import { onMount } from "svelte";
   import { auth } from "../lib/services/firebase";
-  import { authStore } from "../lib/stores/authStore.svelte";
+  import { authStore } from "../lib/stores/authStore.svelte.js";
   import {
     createApiKey,
     subscribeApiKeys,
     deleteApiKey,
-    type ApiKey,
   } from "../lib/services/apiKeyService";
   import Button from "../lib/components/Button.svelte";
   import CodeBlock from "../lib/components/CodeBlock.svelte";
   import Input from "../lib/components/Input.svelte";
   import Alert from "../lib/components/Alert.svelte";
   import CopyButton from "../lib/components/CopyButton.svelte";
-  import { NOTIFICATION_TYPES, NOTIFICATION_CATEGORIES, type NotificationType, type NotificationCategory } from "../lib/utils/constants";
+  import { NOTIFICATION_TYPES, NOTIFICATION_CATEGORIES } from "../lib/utils/constants";
 
   let loading = $state(false);
   let error = $state("");
   let token = $state("");
 
   let keyState = $state({
-    list: [] as ApiKey[],
-    method: "bearer" as "bearer" | "apikey",
+    list: [],
+    method: "bearer",
     selected: "",
     newName: "",
     generated: "",
   });
 
   let form = $state({
-    type: "info" as NotificationType,
+    type: "info",
     source: "CLI",
     title: "Hello World",
     message: "Message from curl",
-    category: "system" as NotificationCategory,
+    category: "system",
   });
 
   const types = NOTIFICATION_TYPES;
   const categories = NOTIFICATION_CATEGORIES;
 
-  const RANDOM_SAMPLES: { source: string; title: string; message: string; type: NotificationType; category: NotificationCategory }[] = [
+  const RANDOM_SAMPLES = [
     { source: "CI/CD", title: "Build Success", message: "Production build completed in 2m 45s.", type: "success", category: "system" },
     { source: "Auth Service", title: "New Sign-in", message: "New login detected from unusual IP: 192.168.1.1", type: "warning", category: "system" },
     { source: "Mobile App", title: "Crash Report", message: "Uncaught ReferenceError on Home screen.", type: "error", category: "mobile" },
@@ -224,20 +223,20 @@ ${authHeader} \\
     try {
       const { key } = await createApiKey(
         authStore.user.uid,
-        authStore.user.email!,
+        authStore.user.email,
         trimmed,
       );
       keyState.generated = key;
       keyState.selected = key;
       keyState.newName = "";
-    } catch (e: any) {
+    } catch (e) {
       error = e.message || "Failed to create API key";
     } finally {
       loading = false;
     }
   }
 
-  async function handleDeleteKey(id: string) {
+  async function handleDeleteKey(id) {
     if (!confirm("Are you sure you want to delete this API key?")) return;
     try {
       await deleteApiKey(id);
@@ -248,7 +247,7 @@ ${authHeader} \\
   }
 </script>
 
-{#snippet selectDropdown(id: string, label: string, options: readonly string[])}
+{#snippet selectDropdown(id, label, options)}
   <div>
     <label
       for={id}
@@ -257,7 +256,7 @@ ${authHeader} \\
     >
     <select
       {id}
-      bind:value={form[id as keyof typeof form]}
+      bind:value={form[id]}
       class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground disabled:opacity-30 rounded-none cursor-pointer text-foreground"
     >
       {#each options as opt}
@@ -279,7 +278,7 @@ ${authHeader} \\
         <div class="flex w-full gap-1 rounded-md border border-border bg-background p-1 sm:w-auto">
           {#each [{ id: "bearer", label: "Bearer Token" }, { id: "apikey", label: "API Key" }] as method}
             <button
-              onclick={() => (keyState.method = method.id as any)}
+              onclick={() => (keyState.method = method.id)}
               class="flex-1 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer sm:flex-none {keyState.method === method.id ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}"
             >
               {method.label}

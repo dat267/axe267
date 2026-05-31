@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { Link } from "svelte-routing";
   import { ICONS } from "../lib/utils/icons";
 
@@ -18,7 +18,7 @@
     };
 
     if ("requestIdleCallback" in window) {
-      (window as any).requestIdleCallback(prefetch);
+      window.requestIdleCallback(prefetch);
     } else {
       setTimeout(prefetch, 1000);
     }

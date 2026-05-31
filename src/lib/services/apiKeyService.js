@@ -6,19 +6,9 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
-  serverTimestamp,
-  type Timestamp
+  serverTimestamp
 } from "firebase/firestore";
 import { db } from "./firebase";
-
-export interface ApiKey {
-  id: string;
-  key: string;
-  userId: string;
-  userEmail: string;
-  name: string;
-  createdAt: Timestamp;
-}
 
 const KEYS_COLLECTION = "api_keys";
 
@@ -33,7 +23,7 @@ export function generateRandomKey(length = 32) {
   return result;
 }
 
-export async function createApiKey(userId: string, userEmail: string, name: string) {
+export async function createApiKey(userId, userEmail, name) {
   const key = generateRandomKey();
   try {
     const docRef = await addDoc(collection(db, KEYS_COLLECTION), {
@@ -44,14 +34,14 @@ export async function createApiKey(userId: string, userEmail: string, name: stri
       createdAt: serverTimestamp()
     });
     return { id: docRef.id, key };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error in createApiKey service:", error);
     // Rethrow with more context if needed, but the console log should help the user see it
     throw error;
   }
 }
 
-export function subscribeApiKeys(userId: string, callback: (keys: ApiKey[]) => void) {
+export function subscribeApiKeys(userId, callback) {
   const q = query(
     collection(db, KEYS_COLLECTION),
     where("userId", "==", userId)
@@ -61,13 +51,13 @@ export function subscribeApiKeys(userId: string, callback: (keys: ApiKey[]) => v
     const keys = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    })) as ApiKey[];
+    }));
     callback(keys);
   }, (error) => {
     console.error("API Key subscription error:", error);
   });
 }
 
-export async function deleteApiKey(id: string) {
+export async function deleteApiKey(id) {
   await deleteDoc(doc(db, KEYS_COLLECTION, id));
 }

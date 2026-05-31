@@ -1,7 +1,6 @@
-<script lang="ts">
+<script>
     import Modal from "../lib/components/Modal.svelte";
     import Input from "../lib/components/Input.svelte";
-    import type { Notification } from "../lib/services/notificationService";
     import { CATEGORY_LABELS, TYPE_COLORS } from "../lib/utils/constants";
 
     let {
@@ -11,23 +10,16 @@
         limit = 20,
         onLoadMore = () => {},
         onDismiss = () => {},
-    } = $props<{
-        title?: string;
-        notifications?: Notification[];
-        totalCount?: number;
-        limit?: number;
-        onLoadMore?: () => void;
-        onDismiss?: (id: string) => void;
-    }>();
+    } = $props();
 
-    let selectedNotification = $state<Notification | null>(null);
+    let selectedNotification = $state(null);
     let showModal = $state(false);
     let selectedCategory = $state("all");
     let searchQuery = $state("");
-    let observerTarget = $state<HTMLElement | null>(null);
+    let observerTarget = $state(null);
 
     let filteredNotifications = $derived(
-        notifications.filter((n: Notification) => {
+        notifications.filter((n) => {
             const matchesCategory = selectedCategory === "all" ? true : n.category === selectedCategory;
             const matchesSearch = !searchQuery.trim() || 
                 n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -55,7 +47,7 @@
         return () => observer.disconnect();
     });
 
-    function formatTime(timestamp: any, full = false) {
+    function formatTime(timestamp, full = false) {
         if (!timestamp) return "Just now";
         const date = timestamp.toDate
             ? timestamp.toDate()
@@ -70,18 +62,18 @@
         return date.toLocaleDateString();
     }
 
-    function handleView(n: Notification) {
+    function handleView(n) {
         selectedNotification = n;
         showModal = true;
     }
 
-    function handleDismiss(e: MouseEvent, id: string) {
+    function handleDismiss(e, id) {
         e.stopPropagation();
         onDismiss(id);
     }
 </script>
 
-{#snippet notificationCard(notif: Notification)}
+{#snippet notificationCard(notif)}
   <div
     class="group relative flex h-20 w-full cursor-pointer items-stretch gap-4 border-b border-border px-1 py-3 hover:bg-foreground/5 transition-none"
     onclick={() => handleView(notif)}
@@ -89,7 +81,7 @@
     role="button"
     tabindex="0"
   >
-    <div class="my-1 w-1.5 shrink-0 rounded-full {TYPE_COLORS[notif.type as keyof typeof TYPE_COLORS] || TYPE_COLORS.info}"></div>
+    <div class="my-1 w-1.5 shrink-0 rounded-full {TYPE_COLORS[notif.type] || TYPE_COLORS.info}"></div>
     <div class="flex min-w-0 grow flex-col justify-center">
       <div class="mb-0.5 flex items-center justify-between text-[10px] font-bold tracking-tight text-gray-500">
         <span class="mr-2 truncate font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">{notif.source}</span>

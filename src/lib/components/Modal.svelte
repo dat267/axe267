@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   import { onMount, onDestroy } from "svelte";
 
   let {
@@ -8,16 +8,9 @@
     showCloseButton = true,
     showFooter = true,
     children,
-  } = $props<{
-    show?: boolean;
-    title?: string;
-    onClose: () => void;
-    showCloseButton?: boolean;
-    showFooter?: boolean;
-    children?: any;
-  }>();
+  } = $props();
 
-  function handleKeydown(e: KeyboardEvent) {
+  function handleKeydown(e) {
     if (e.key === "Escape" && show) onClose();
   }
 

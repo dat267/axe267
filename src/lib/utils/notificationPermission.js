@@ -2,7 +2,7 @@
  * Handles browser notification permissions and sending local notifications.
  */
 
-export async function requestNotificationPermission(): Promise<boolean> {
+export async function requestNotificationPermission() {
   if (!("Notification" in window)) {
     console.error("This browser does not support desktop notification");
     return false;
@@ -20,7 +20,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return false;
 }
 
-export function sendLocalNotification(title: string, options?: NotificationOptions & { onClick?: () => void }) {
+export function sendLocalNotification(title, options) {
   if (Notification.permission === "granted") {
     const { onClick, ...notificationOptions } = options || {};
     const notification = new Notification(title, {

@@ -1,9 +1,9 @@
-<script lang="ts">
+<script>
   import { onMount, tick } from "svelte";
   import ePub from "epubjs";
   import { auth, storage, db } from "../lib/services/firebase";
-  import { authStore } from "../lib/stores/authStore.svelte.ts";
-  import { themeStore } from "../lib/stores/themeStore.svelte.ts";
+  import { authStore } from "../lib/stores/authStore.svelte.js";
+  import { themeStore } from "../lib/stores/themeStore.svelte.js";
   import { ICONS } from "../lib/utils/icons";
   import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -11,36 +11,37 @@
   import Modal from "../lib/components/Modal.svelte";
   import Input from "../lib/components/Input.svelte";
 
-  let readerElement = $state<HTMLElement>();
-  let rendition: any;
-  let book: any;
-  let tracks = $state<any[]>([]);
-  let collections = $state<any[]>([]);
+  let readerElement = $state();
+  let rendition;
+  let book;
+  let tracks = $state([]);
+  let collections = $state([]);
   let isLoading = $state(true);
   let currentBookName = $state("");
   let isReaderOpen = $state(false);
   let isBookLoading = $state(false);
-  let metadata = $state<any>(null);
-  let locations = $state<any>(null);
+  let metadata = $state(null);
+  let locations = $state(null);
   let progress = $state(0);
-  let saveTimeout: ReturnType<typeof setTimeout>;
+  let saveTimeout;
 
   // UI State
-  let toc = $state<any[]>([]);
+  let toc = $state([]);
   let showToc = $state(false);
   let showGoTo = $state(false);
   let showSettings = $state(false);
   let gotoSearch = $state("");
-  let searchResults = $state<any[]>([]);
+  let searchResults = $state([]);
   let isSearching = $state(false);
   let hasSearched = $state(false);
-  let selectedCollectionId = $state<string>("all");
-  let uploadFile = $state<File | null>(null);
+  let selectedCollectionId = $state("all");
+  let uploadFile = $state(null);
   let uploadCollection = $state("Books");
   let isUploading = $state(false);
   let newCollectionName = $state("");
   let showUploadModal = $state(false);
-  async function handleUpload(e: Event) {
+
+  async function handleUpload(e) {
     e.preventDefault();
     if (!uploadFile) return;
     const col = uploadCollection === "new" ? newCollectionName.trim() : uploadCollection;
@@ -59,13 +60,13 @@
       uploadFile = null;
       newCollectionName = "";
       uploadCollection = "Books";
-      const fileInput = document.getElementById("epub-file") as HTMLInputElement;
+      const fileInput = document.getElementById("epub-file");
       if (fileInput) fileInput.value = "";
       await loadLibrary();
       showUploadModal = false;
     } catch (err) {
       console.error("Upload failed:", err);
-      alert("Upload failed: " + (err as Error).message);
+      alert("Upload failed: " + err.message);
     } finally {
       isUploading = false;
     }
@@ -73,7 +74,7 @@
   let fontSize = $state(16);
   let fontFamily = $state("ui-sans-serif, system-ui, sans-serif");
   let lineHeight = $state(1.5);
-  let flow = $state<"paginated" | "scrolled">("paginated");
+  let flow = $state("paginated");
 
   const FONT_OPTIONS = [
     { label: "Sans", value: "ui-sans-serif, system-ui, sans-serif" },
@@ -86,8 +87,8 @@
     try {
       const rootRef = ref(storage, "books");
       const res = await listAll(rootRef);
-      const newCollections: any[] = [];
-      const newTracks: any[] = [];
+      const newCollections = [];
+      const newTracks = [];
       const folderPromises = res.prefixes.map(async (folderRef) => {
         const folderRes = await listAll(folderRef);
         const epubs = folderRes.items.filter(i => i.name.toLowerCase().endsWith('.epub'));
@@ -151,19 +152,37 @@
   }
 
   $effect(() => { if (themeStore.darkMode !== undefined) applyTypography(); });
-  function flattenToc(items: any[], level = 0): any[] {
-    const flat: any[] = [];
+  function flattenToc(items, level = 0) {
+    const flat = [];
+    if (!book) return flat;
+    
     for (const item of items) {
       const cleanLabel = item.label ? item.label.trim().replace(/\s+/g, " ") : "";
-      flat.push({ label: cleanLabel, href: item.href, level });
+      let target = item.cfi || item.href;
+
+      // Efficiency: Pre-resolve relative paths to CFIs or canonical paths
+      if (!item.cfi && item.href) {
+        try {
+          const canonical = book.canonical(item.href);
+          // Look up in spine to get a CFI if possible
+          const section = book.spine.get(canonical.replace(/^\//, ""));
+          target = section?.cfi || canonical || item.href;
+        } catch (e) {
+          target = item.href;
+        }
+      }
+
+      flat.push({ label: cleanLabel, target, level });
       if (item.subitems && item.subitems.length > 0) {
         flat.push(...flattenToc(item.subitems, level + 1));
       }
     }
     return flat;
   }
-  function attachRenditionEvents(bookTitle: string) {
-    rendition.hooks.content.register((contents: any) => {
+  function attachRenditionEvents(bookTitle) {
+    if (!rendition) return;
+    rendition.hooks.content.register((contents) => {
+      if (!rendition) return;
       const doc = contents.document;
       const style = doc.createElement("style");
       style.textContent = `
@@ -188,7 +207,8 @@
       `;
       doc.head.appendChild(style);
     });
-    rendition.on("relocated", (location: any) => {
+    rendition.on("relocated", (location) => {
+      if (!book || !rendition) return;
       const cfi = location.start.cfi;
       if (book.locations && book.locations.total > 0) progress = book.locations.percentageFromCfi(cfi);
       clearTimeout(saveTimeout);
@@ -212,15 +232,19 @@
       spread: flow === "scrolled" ? "none" : "auto"
     });
     applyTypography();
-    if (currentCfi) {
-      try { await rendition.display(currentCfi); }
-      catch (e) { await rendition.display(); }
-    } else {
-      await rendition.display();
+    try {
+      if (currentCfi) {
+        await rendition.display(currentCfi);
+      } else {
+        await rendition.display();
+      }
+    } catch (e) {
+      console.warn("Flow switch display failed:", e);
+      try { await rendition.display(); } catch (e2) { console.error("Flow switch fallback failed:", e2); }
     }
     attachRenditionEvents(currentBookName);
   }
-  async function openBook(title: string, filePath: string) {
+  async function openBook(title, filePath) {
     currentBookName = title;
     isReaderOpen = true;
     isBookLoading = true;
@@ -240,8 +264,10 @@
     if (window.history.state?.reader !== true) window.history.pushState({ reader: true }, "");
     await tick();
     if (book) book.destroy();
-    let bookData: any;
+    let bookData;
+    const canCache = typeof window !== 'undefined' && 'caches' in window;
     try {
+      if (!canCache) throw new Error("Cache API not available");
       const cacheName = "axe-epub-cache-v1";
       const cacheKey = `https://axe-local/${encodeURIComponent(filePath)}?url=${encodeURIComponent(url)}`;
       const cache = await caches.open(cacheName);
@@ -263,8 +289,9 @@
         bookData = await response.blob();
       }
     } catch (e) {
-      console.warn("Cache error, falling back:", e);
+      if (canCache) console.warn("Cache error, falling back:", e);
       try {
+        if (!canCache) throw new Error("Cache API not available");
         const cacheName = "axe-epub-cache-v1";
         const prefix = `https://axe-local/${encodeURIComponent(filePath)}`;
         const cache = await caches.open(cacheName);
@@ -275,11 +302,27 @@
           if (cachedResponse) bookData = await cachedResponse.blob();
         }
       } catch (offlineErr) {
-        console.warn("Offline cache check failed:", offlineErr);
+        if (canCache) console.warn("Offline cache check failed:", offlineErr);
       }
       if (!bookData) bookData = url;
     }
+    if (book) {
+      book.destroy();
+      book = null;
+      rendition = null;
+    }
+
     book = ePub(bookData);
+    
+    try {
+      await book.opened;
+      await book.ready;
+    } catch (err) {
+      console.error("Book loading failed:", err);
+      isBookLoading = false;
+      return;
+    }
+
     rendition = book.renderTo(readerElement, {
       width: "100%",
       height: "100%",
@@ -287,7 +330,9 @@
       manager: flow === "scrolled" ? "continuous" : "default",
       spread: flow === "scrolled" ? "none" : "auto"
     });
+
     applyTypography();
+    
     let savedCfi = null;
     if (auth.currentUser) {
       const progressId = `${auth.currentUser.uid}_${title.replace(/[^a-z0-9]/gi, "_")}`;
@@ -295,16 +340,29 @@
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) savedCfi = docSnap.data().cfi;
     }
+
     try {
-      await rendition.display(savedCfi || undefined);
+      if (savedCfi) {
+        await rendition.display(savedCfi);
+      } else {
+        await rendition.display();
+      }
     } catch (e) {
-      await rendition.display();
+      console.warn("Initial display failed:", e);
+      try {
+        if (rendition) await rendition.display();
+      } catch (e2) {
+        console.error("Fallback display failed:", e2);
+      }
     } finally {
       isBookLoading = false;
     }
-    book.loaded.metadata.then((m: any) => metadata = m);
-    book.loaded.navigation.then((nav: any) => toc = flattenToc(nav.toc || []));
+
+    book.loaded.metadata.then((m) => metadata = m);
+    book.loaded.navigation.then((nav) => toc = flattenToc(nav.toc || []));
+    
     book.ready.then(() => {
+      if (!book) return;
       const storageKey = `axe_locations_${title.replace(/[^a-z0-9]/gi, "_")}`;
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -313,61 +371,116 @@
       } else {
         return book.locations.generate(1600).then(() => {
           try {
-            localStorage.setItem(storageKey, book.locations.save());
+            if (book) localStorage.setItem(storageKey, book.locations.save());
           } catch (le) {
             console.warn("Save locations failed:", le);
           }
-          return book.locations;
+          return book?.locations;
         });
       }
     }).then(() => {
+      if (!book) return;
       locations = book.locations;
-      if (rendition.location) progress = book.locations.percentageFromCfi(rendition.location.start.cfi);
+      if (rendition?.location) progress = book.locations.percentageFromCfi(rendition.location.start.cfi);
     });
+
     attachRenditionEvents(title);
   }
 
-  function next() { rendition?.next(); }
-  function prev() { rendition?.prev(); }
+  function next() { if (rendition) rendition.next(); }
+  function prev() { if (rendition) rendition.prev(); }
   
   function closeReader(triggerHistory = true) {
     isReaderOpen = false;
     localStorage.removeItem("axe_reader_session");
     if (triggerHistory && window.history.state?.reader === true) window.history.back();
-    if (book) { book.destroy(); book = null; }
+    if (book) {
+      book.destroy();
+      book = null;
+      rendition = null;
+    }
   }
 
   async function performSearch() {
     if (!gotoSearch || !book) return;
     isSearching = true; hasSearched = true; searchResults = [];
-    const results = await Promise.all(book.spine.spineItems.map((item: any) => {
-      return item.load(book.load.bind(book)).then(async (doc: Document) => {
-        const res = await item.find(gotoSearch);
-        item.unload();
-        return res;
-      });
-    }));
-    searchResults = results.flat();
-    isSearching = false;
+    try {
+      const results = await Promise.all(book.spine.spineItems.map((item) => {
+        return item.load(book.load.bind(book)).then(async (doc) => {
+          const res = await item.find(gotoSearch);
+          item.unload();
+          return res;
+        });
+      }));
+      searchResults = results.flat();
+    } catch (err) {
+      console.error("Search failed:", err);
+    } finally {
+      isSearching = false;
+    }
   }
 
-  async function jumpTo(cfi: string) {
-    try { await rendition.display(cfi); showToc = false; showGoTo = false; showSettings = false; }
-    catch (e) { console.warn("Jump failed:", e); }
+  async function jumpTo(target) {
+    if (!rendition || !target || !book) return;
+    
+    const tryDisplay = async (t) => {
+      try {
+        await rendition.display(t);
+        showToc = false;
+        showGoTo = false;
+        showSettings = false;
+        return true;
+      } catch (err) {
+        return false;
+      }
+    };
+
+    // 1. Try pre-resolved target (Direct CFI or canonical path)
+    if (await tryDisplay(target)) return;
+
+    // 2. Fallback: Robust resolution (for dynamic links or edge cases)
+    console.warn("Direct jump failed, trying fallback resolution:", target);
+    if (target.startsWith('/') && await tryDisplay(target.substring(1))) return;
+
+    const canonical = book.canonical(target);
+    if (canonical && canonical !== target) {
+      if (await tryDisplay(canonical)) return;
+      if (canonical.startsWith('/') && await tryDisplay(canonical.substring(1))) return;
+    }
+
+    try {
+      const cleanPath = (canonical || target).split('#')[0].replace(/^\//, "");
+      const spineMatch = book.spine.spineItems.find(item => 
+        item.href === cleanPath || 
+        item.href.endsWith(cleanPath) ||
+        cleanPath.endsWith(item.href)
+      );
+
+      if (spineMatch) {
+        if (await tryDisplay(spineMatch.cfi || spineMatch.href)) return;
+      }
+    } catch (err) {
+      console.warn("Spine fallback failed:", err);
+    }
+
+    console.error("All jump attempts failed for target:", target);
   }
 
-  async function deleteBook(bookItem: any) {
+  async function deleteBook(bookItem) {
     if (!authStore.isAdmin || !confirm(`Permanently delete ${bookItem.title}?`)) return;
     try {
       await deleteObject(ref(storage, bookItem.filePath));
+      const canCache = typeof window !== 'undefined' && 'caches' in window;
       try {
-        const cacheName = "axe-epub-cache-v1";
-        const prefix = `https://axe-local/${encodeURIComponent(bookItem.filePath)}`;
-        const cache = await caches.open(cacheName);
-        const keys = await cache.keys();
-        for (const req of keys) {
-          if (req.url.startsWith(prefix)) {
-            await cache.delete(req);
+        if (canCache) {
+          const cacheName = "axe-epub-cache-v1";
+          const prefix = `https://axe-local/${encodeURIComponent(bookItem.filePath)}`;
+          const cache = await caches.open(cacheName);
+          const keys = await cache.keys();
+          for (const req of keys) {
+            if (req.url.startsWith(prefix)) {
+              await cache.delete(req);
+            }
           }
         }
       } catch (ce) {
@@ -407,7 +520,7 @@
       lineHeight = Math.min(3.0, Math.max(1.0, parsed.lineHeight || 1.5));
       flow = parsed.flow || "paginated";
     }
-    const handlePopState = (e: PopStateEvent) => {
+    const handlePopState = (e) => {
       if (isReaderOpen && !e.state?.reader) closeReader(false);
     };
     window.addEventListener("popstate", handlePopState);
@@ -419,7 +532,7 @@
   );
 </script>
 
-{#snippet icon(svg: string, size = 18)}
+{#snippet icon(svg, size = 18)}
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     {@html svg}
   </svg>
@@ -472,7 +585,7 @@
             type="file" 
             id="epub-file" 
             accept=".epub" 
-            onchange={(e) => { const files = (e.target as HTMLInputElement).files; if (files && files.length > 0) uploadFile = files[0]; }} 
+            onchange={(e) => { const files = e.target.files; if (files && files.length > 0) uploadFile = files[0]; }} 
             class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground text-foreground cursor-pointer" 
             required 
           />
@@ -578,7 +691,7 @@
             </div>
             <div class="flex-1 overflow-y-auto space-y-2">
               {#each toc as item} 
-                <button onclick={() => jumpTo(item.href)} style="padding-left: {item.level * 16 + 12}px;" class="w-full text-left text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-foreground hover:bg-foreground/5 rounded-md pr-3 py-2.5 transition-none cursor-pointer border-b border-border/30">
+                <button onclick={() => jumpTo(item.target)} style="padding-left: {item.level * 16 + 12}px;" class="w-full text-left text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-foreground hover:bg-foreground/5 rounded-md pr-3 py-2.5 transition-none cursor-pointer border-b border-border/30">
                   {item.label}
                 </button>
               {/each}
@@ -600,7 +713,7 @@
                     label="find keyword"
                     bind:value={gotoSearch} 
                     oninput={() => hasSearched = false} 
-                    onkeydown={(e: KeyboardEvent) => e.key === "Enter" && performSearch()} 
+                    onkeydown={(e) => e.key === "Enter" && performSearch()} 
                     placeholder="Search..." 
                   />
                 </div>

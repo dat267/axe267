@@ -18,9 +18,6 @@
     "firebase-tools": "latest",
     "postcss": "latest",
     "svelte": "latest",
-    "svelte-check": "latest",
-    "tslib": "latest",
-    "typescript": "latest",
     "vite": "latest"
   },
   "dependencies": {

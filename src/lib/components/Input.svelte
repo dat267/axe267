@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
   let { 
     type = "text", 
     id, 
@@ -9,17 +9,7 @@
     disabled = false,
     labelRight,
     ...rest
-  } = $props<{
-    type?: string;
-    id: string;
-    label?: string;
-    value?: string;
-    placeholder?: string;
-    required?: boolean;
-    disabled?: boolean;
-    labelRight?: any;
-    [key: string]: any;
-  }>();
+  } = $props();
 </script>
 <div>
   {#if label}

@@ -9,28 +9,16 @@ import {
   doc,
   limit,
   serverTimestamp,
-  getCountFromServer,
-  type Timestamp
+  getCountFromServer
   } from "firebase/firestore";
   import { db } from "./firebase";
-
-  export interface Notification {
-  id: string;
-  userEmail: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  source: string;
-  title: string;
-  message: string;
-  category: 'system' | 'mobile' | 'desktop';
-  createdAt: Timestamp;
-  }
 
   const NOTIFICATIONS_COLLECTION = "notifications";
 
 /**
  * Gets the total count of notifications for a specific user.
  */
-export async function getNotificationsCount(userEmail: string) {
+export async function getNotificationsCount(userEmail) {
   try {
     const q = query(
       collection(db, NOTIFICATIONS_COLLECTION),
@@ -48,9 +36,9 @@ export async function getNotificationsCount(userEmail: string) {
  * Subscribes to notifications for a specific user.
  */
 export function subscribeNotifications(
-  userEmail: string, 
-  callback: (notifications: Notification[]) => void,
-  limitCount: number = 20
+  userEmail, 
+  callback,
+  limitCount = 20
 ) {
   const q = query(
     collection(db, NOTIFICATIONS_COLLECTION),
@@ -63,7 +51,7 @@ export function subscribeNotifications(
     const notifications = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    })) as Notification[];
+    }));
     callback(notifications);
   }, (error) => {
     console.error("Subscription error:", error);
@@ -73,7 +61,7 @@ export function subscribeNotifications(
 /**
  * Deletes a specific notification by ID.
  */
-export async function deleteNotification(id: string) {
+export async function deleteNotification(id) {
   try {
     await deleteDoc(doc(db, NOTIFICATIONS_COLLECTION, id));
   } catch (error) {
@@ -82,7 +70,7 @@ export async function deleteNotification(id: string) {
   }
 }
 
-export async function clearAllNotifications(idToken: string) {
+export async function clearAllNotifications(idToken) {
   const apiUrl = "/api/notify";
   try {
     const response = await fetch(apiUrl, {

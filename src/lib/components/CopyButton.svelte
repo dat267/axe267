@@ -1,15 +1,10 @@
-<script lang="ts">
+<script>
   let { 
     text, 
     onCopy, 
     className = "",
     label = ""
-  } = $props<{ 
-    text: string; 
-    onCopy?: () => void;
-    className?: string;
-    label?: string;
-  }>();
+  } = $props();
 
   let copied = $state(false);
 

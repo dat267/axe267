@@ -1,4 +1,4 @@
-const ERROR_MAP: Record<string, string> = {
+const ERROR_MAP = {
   "auth/invalid-credential": "Invalid email or password. Please try again.",
   "auth/user-not-found": "No account found with this email.",
   "auth/wrong-password": "Incorrect password.",
@@ -14,7 +14,7 @@ const ERROR_MAP: Record<string, string> = {
   "auth/email-change-needs-verification": "Verify your new email before it updates.",
 };
 
-export function getErrorMessage(error: unknown): string {
+export function getErrorMessage(error) {
   if (!error) return "An unexpected error occurred. Please try again.";
 
   let code = String(error);

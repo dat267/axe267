@@ -1,11 +1,8 @@
-<script lang="ts">
-  let props = $props<{
-    load: () => Promise<{ default: any }>;
-    [key: string]: any;
-  }>();
-  let Component = $state<any>(null);
+<script>
+  let props = $props();
+  let Component = $state(null);
   $effect(() => {
-    props.load().then((module: { default: any }) => {
+    props.load().then((module) => {
       Component = module.default;
     });
   });

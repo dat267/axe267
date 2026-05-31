@@ -1,4 +1,4 @@
-<script lang="ts">
+<script>
     import {
         signInWithEmailAndPassword,
         createUserWithEmailAndPassword,
@@ -7,13 +7,13 @@
         signOut,
     } from "firebase/auth";
     import { auth } from "../lib/services/firebase";
-    import { authStore } from "../lib/stores/authStore.svelte";
+    import { authStore } from "../lib/stores/authStore.svelte.js";
     import { getErrorMessage } from "../lib/utils/authErrors";
     import Input from "../lib/components/Input.svelte";
     import Button from "../lib/components/Button.svelte";
     import Alert from "../lib/components/Alert.svelte";
 
-    let mode = $state<"signin" | "signup" | "forgot" | "verify">("signin");
+    let mode = $state("signin");
     let email = $state("");
     let password = $state("");
     let error = $state("");
@@ -41,21 +41,21 @@
         verify: { title: "verify your email", desc: "Check your inbox to activate your account" },
     };
 
-    async function executeAction<T>(action: () => Promise<T>, successMsg = "") {
+    async function executeAction(action, successMsg = "") {
         error = "";
         message = "";
         loading = true;
         try {
             await action();
             if (successMsg) message = successMsg;
-        } catch (e: unknown) {
+        } catch (e) {
             error = getErrorMessage(e);
         } finally {
             loading = false;
         }
     }
 
-    async function handleSubmit(e: SubmitEvent) {
+    async function handleSubmit(e) {
         e.preventDefault();
 
         if (mode === "signin") {

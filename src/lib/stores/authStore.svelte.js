@@ -1,8 +1,8 @@
-import { onAuthStateChanged, type User } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../services/firebase";
 import { doc, getDoc } from "firebase/firestore";
 class AuthStore {
-  #user = $state<User | null>(null);
+  #user = $state(null);
   #loading = $state(true);
   #isVerified = $state(false);
   #isAdmin = $state(false);
@@ -30,10 +30,10 @@ class AuthStore {
     });
   }
   get user() { return this.#user; }
-  set user(value: User | null) { this.#user = value; }
+  set user(value) { this.#user = value; }
   get loading() { return this.#loading; }
   get isVerified() { return this.#isVerified; }
-  set isVerified(value: boolean) { this.#isVerified = value; }
+  set isVerified(value) { this.#isVerified = value; }
   get isAdmin() { return this.#isAdmin; }
   async refreshStatus() {
     if (auth.currentUser) {

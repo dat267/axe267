@@ -2,6 +2,7 @@
     import Modal from "../lib/components/Modal.svelte";
     import Input from "../lib/components/Input.svelte";
     import type { Notification } from "../lib/services/notificationService";
+    import { CATEGORY_LABELS, TYPE_COLORS } from "../lib/utils/constants";
 
     let {
         title = "Notifications",
@@ -24,13 +25,6 @@
     let selectedCategory = $state("all");
     let searchQuery = $state("");
     let observerTarget = $state<HTMLElement | null>(null);
-
-    const categories = [
-        { id: "all", label: "All" },
-        { id: "system", label: "System" },
-        { id: "mobile", label: "Mobile" },
-        { id: "desktop", label: "Desktop" },
-    ];
 
     let filteredNotifications = $derived(
         notifications.filter((n: Notification) => {
@@ -60,13 +54,6 @@
         observer.observe(observerTarget);
         return () => observer.disconnect();
     });
-
-    const typeColors: Record<string, string> = {
-        info: "bg-gray-500",
-        success: "bg-emerald-500",
-        warning: "bg-amber-500",
-        error: "bg-rose-500",
-    };
 
     function formatTime(timestamp: any, full = false) {
         if (!timestamp) return "Just now";
@@ -102,7 +89,7 @@
     role="button"
     tabindex="0"
   >
-    <div class="my-1 w-1.5 shrink-0 rounded-full {typeColors[notif.type] || typeColors.info}"></div>
+    <div class="my-1 w-1.5 shrink-0 rounded-full {TYPE_COLORS[notif.type as keyof typeof TYPE_COLORS] || TYPE_COLORS.info}"></div>
     <div class="flex min-w-0 grow flex-col justify-center">
       <div class="mb-0.5 flex items-center justify-between text-[10px] font-bold tracking-tight text-gray-500">
         <span class="mr-2 truncate font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">{notif.source}</span>
@@ -138,7 +125,7 @@
   <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-2xl font-bold tracking-tight lowercase">notifications</h1>
     <div class="flex w-full gap-1 rounded-md border border-border bg-background p-1 sm:w-auto">
-      {#each categories as cat}
+      {#each CATEGORY_LABELS as cat}
         <button
           onclick={() => (selectedCategory = cat.id)}
           class="flex-1 rounded px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer sm:flex-none {selectedCategory === cat.id ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}"

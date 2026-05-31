@@ -7,7 +7,6 @@
     { to: "/reader", label: "Reader", icon: ICONS.BOOK },
     { to: "/integrations", label: "Integrations", icon: ICONS.INTEGRATION },
     { to: "/settings", label: "Settings", icon: ICONS.SETTINGS },
-    { to: "/cipher", label: "Cipher", icon: ICONS.CIPHER },
   ];
 
   $effect(() => {
@@ -16,7 +15,6 @@
       import("./Reader.svelte");
       import("./Integrations.svelte");
       import("./Settings.svelte");
-      import("./Cipher.svelte");
     };
 
     if ("requestIdleCallback" in window) {

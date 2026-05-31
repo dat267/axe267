@@ -24,11 +24,9 @@
     "vite": "latest"
   },
   "dependencies": {
-    "dotenv": "latest",
     "epubjs": "latest",
     "firebase": "latest",
     "jszip": "latest",
-    "node-fetch": "latest",
     "svelte-routing": "latest"
   }
 }

@@ -40,6 +40,24 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border) / 0.6) transparent;
   }
+
+  /* Reader specific global overrides */
+  .epub-container { 
+    height: 100% !important; 
+    width: 100% !important; 
+  }
+
+  /* Hide number input spin buttons */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { 
+    -webkit-appearance: none; 
+    appearance: none; 
+    margin: 0; 
+  }
+  input[type="number"] { 
+    -moz-appearance: textfield; 
+    appearance: textfield; 
+  }
 }
 body {
   @apply bg-background text-foreground antialiased;

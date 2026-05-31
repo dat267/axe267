@@ -7,7 +7,8 @@
     placeholder = "", 
     required = false, 
     disabled = false,
-    labelRight
+    labelRight,
+    ...rest
   } = $props<{
     type?: string;
     id: string;
@@ -17,6 +18,7 @@
     required?: boolean;
     disabled?: boolean;
     labelRight?: any;
+    [key: string]: any;
   }>();
 </script>
 <div>
@@ -33,6 +35,7 @@
     {placeholder}
     {required}
     {disabled}
+    {...rest}
     class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground disabled:opacity-30 placeholder-gray-500/40"
   />
 </div>

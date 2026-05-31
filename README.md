@@ -121,69 +121,35 @@ The application maintains the following keys in the client's `localStorage` for 
 
 ---
 
-## 🌐 Production Deployment (Firebase)
+## 🌐 Production Deployment
 
-This project is fully containerized for Firebase. All components (Hosting + Functions) are deployed via a single command.
+This project uses **Firebase Hosting** for the frontend and **Google Cloud Run** for the Go backend.
 
-### 1. Initialize Firebase
-Ensure you have the Firebase CLI installed and are logged in:
-```bash
-npm install -g firebase-tools
-firebase login
-```
+### 1. Build & Deploy Manually
 
-### 2. Deployment
-1.  **Build & Deploy:**
+1.  **Frontend Build**
     ```bash
-    # Build Backend
-    cd functions && npm install && npm run build && cd ..
-    # Build Frontend
-    npm install && npm run build
-    # Deploy All
-    npx firebase deploy
+    npm run build
     ```
 
-### 3. Firestore Security Rules
-Ensure only authenticated users can access their own data. Paste these in the **Rules** tab of your Firestore Database:
+2.  **Deploy to Firebase Hosting**
+    ```bash
+    firebase deploy --only hosting
+    ```
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /notifications/{docId} {
-      allow write: if false; // Only Cloud Functions can write
-      allow read, delete: if request.auth != null 
-                          && request.auth.token.email == resource.data.userEmail;
-    }
-  }
-}
-```
+3.  **Deploy Go Backend to Cloud Run**
+    ```bash
+    gcloud run deploy axe-backend --source . --region asia-southeast1
+    ```
 
-### 4. Firestore Indexes
-Firestore requires a composite index to sort notifications by time per user. 
-- Open your browser console while running the app.
-- Click the provided Firebase error link to auto-generate and enable the index.
-
----
-
-## 🤖 CI/CD with GitHub Actions
-
-A fully automated workflow is provided in `.github/workflows/deploy.yml`. 
-
-**Required GitHub Secrets:**
-- `FIREBASE_SERVICE_ACCOUNT`: Your Firebase Service Account JSON key.
-- `VITE_FIREBASE_API_KEY`: Your Firebase API Key.
-- `VITE_FIREBASE_AUTH_DOMAIN`: Your Auth Domain.
-- `VITE_FIREBASE_PROJECT_ID`: Your Project ID.
-- `VITE_FIREBASE_STORAGE_BUCKET`: Your Storage Bucket.
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`: Your Sender ID.
-- `VITE_FIREBASE_APP_ID`: Your App ID.
+### 2. Automated Deployment
+The project includes a GitHub Action in `.github/workflows/deploy.yml` that automatically deploys both the frontend and backend on every push to `main`.
 
 ---
 
 ## 🛠 Tech Stack
 - **Frontend:** Svelte 5 (Runes), TypeScript, Vite
-- **Backend:** Firebase Functions (TypeScript), Firestore, Auth
+- **Backend:** Go (Cloud Run), Firestore
 - **Hosting:** Firebase Hosting
 - **Styling:** Tailwind CSS v4
-- **Deployment:** GitHub Actions + Firebase
+- **Deployment:** GitHub Actions

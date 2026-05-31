@@ -9,6 +9,7 @@
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
   import Modal from "../lib/components/Modal.svelte";
+  import Input from "../lib/components/Input.svelte";
 
   let readerElement = $state<HTMLElement>();
   let rendition: any;
@@ -464,32 +465,51 @@
   </div>
   {#if authStore.isAdmin}
     <Modal show={showUploadModal} title="upload epub book" onClose={() => (showUploadModal = false)} showFooter={false}>
-      <form onsubmit={handleUpload} class="flex flex-col gap-4">
-        <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold uppercase tracking-widest text-gray-500" for="epub-file">select file</label>
-          <input type="file" id="epub-file" accept=".epub" onchange={(e) => { const files = (e.target as HTMLInputElement).files; if (files && files.length > 0) uploadFile = files[0]; }} class="w-full bg-background border border-border rounded-md px-3 py-2 text-xs text-foreground focus:outline-none focus:border-foreground" required />
+      <form onsubmit={handleUpload} class="flex flex-col gap-6">
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1" for="epub-file">select file</label>
+          <input 
+            type="file" 
+            id="epub-file" 
+            accept=".epub" 
+            onchange={(e) => { const files = (e.target as HTMLInputElement).files; if (files && files.length > 0) uploadFile = files[0]; }} 
+            class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground text-foreground cursor-pointer" 
+            required 
+          />
         </div>
-        <div class="flex flex-col gap-2">
-          <label class="text-[9px] font-bold uppercase tracking-widest text-gray-500" for="collection-select">collection</label>
-          <select id="collection-select" bind:value={uploadCollection} class="bg-background border border-border rounded-md px-3 py-2 text-xs text-foreground focus:outline-none focus:border-foreground cursor-pointer w-full">
-            <option value="Books">Books (Root)</option>
+        <div>
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1" for="collection-select">collection</label>
+          <select 
+            id="collection-select" 
+            bind:value={uploadCollection} 
+            class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground text-foreground cursor-pointer"
+          >
+            <option value="Books" class="bg-background">Books (Root)</option>
             {#each collections as col}
               {#if col.id !== 'Books'}
-                <option value={col.id}>{col.name}</option>
+                <option value={col.id} class="bg-background">{col.name}</option>
               {/if}
             {/each}
-            <option value="new">+ New Collection...</option>
+            <option value="new" class="bg-background">+ New Collection...</option>
           </select>
         </div>
         {#if uploadCollection === 'new'}
-          <div class="flex flex-col gap-2">
-            <label class="text-[9px] font-bold uppercase tracking-widest text-gray-500" for="new-col-input">new collection name</label>
-            <input type="text" id="new-col-input" bind:value={newCollectionName} placeholder="Collection name..." class="bg-background border border-border rounded-md px-3 py-2 text-xs text-foreground focus:outline-none focus:border-foreground" required />
-          </div>
+          <Input
+            id="new-col-input"
+            label="new collection name"
+            bind:value={newCollectionName}
+            placeholder="Collection name..."
+            required
+          />
         {/if}
-        <button type="submit" disabled={isUploading || !uploadFile} class="bg-foreground text-background font-bold uppercase tracking-widest text-[10px] h-10 w-full rounded-md hover:opacity-90 disabled:opacity-30 transition-none cursor-pointer mt-2">
-          {isUploading ? 'uploading...' : 'upload'}
-        </button>
+        <Button 
+          type="submit" 
+          disabled={!uploadFile} 
+          loading={isUploading} 
+          className="w-full mt-2"
+        >
+          upload
+        </Button>
       </form>
     </Modal>
   {/if}
@@ -573,9 +593,17 @@
               <button onclick={() => showGoTo = false} class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer">back</button>
             </div>
             <div class="flex-1 flex flex-col overflow-hidden">
-              <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">find keyword</p>
-              <div class="flex gap-2 mb-6">
-                <input type="text" bind:value={gotoSearch} oninput={() => hasSearched = false} onkeydown={(e) => e.key === "Enter" && performSearch()} placeholder="Search..." class="flex-1 bg-background border-b border-border py-2 text-sm outline-none focus:border-foreground text-foreground placeholder-gray-500/40" />
+              <div class="flex items-end gap-2 mb-6">
+                <div class="flex-1">
+                  <Input 
+                    id="book-search"
+                    label="find keyword"
+                    bind:value={gotoSearch} 
+                    oninput={() => hasSearched = false} 
+                    onkeydown={(e: KeyboardEvent) => e.key === "Enter" && performSearch()} 
+                    placeholder="Search..." 
+                  />
+                </div>
                 <button onclick={performSearch} disabled={isSearching} class="h-10 w-10 flex items-center justify-center shrink-0 border border-border rounded-md bg-surface hover:bg-foreground hover:text-background hover:border-foreground text-foreground transition-none cursor-pointer">
                   {#if isSearching} <span class="text-[10px] font-bold opacity-70 tracking-widest">...</span>
                   {:else} {@render icon(ICONS.SEARCH, 14)} {/if}
@@ -664,9 +692,3 @@
   {/if}
 </div>
 <svelte:body class:overflow-hidden={isReaderOpen} />
-<style>
-  :global(.epub-container) { height: 100% !important; width: 100% !important; }
-  input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
-  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-</style>

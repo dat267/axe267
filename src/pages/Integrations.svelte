@@ -13,6 +13,7 @@
   import Input from "../lib/components/Input.svelte";
   import Alert from "../lib/components/Alert.svelte";
   import CopyButton from "../lib/components/CopyButton.svelte";
+  import { NOTIFICATION_TYPES, NOTIFICATION_CATEGORIES, type NotificationType, type NotificationCategory } from "../lib/utils/constants";
 
   let loading = $state(false);
   let error = $state("");
@@ -27,17 +28,17 @@
   });
 
   let form = $state({
-    type: "info",
+    type: "info" as NotificationType,
     source: "CLI",
     title: "Hello World",
     message: "Message from curl",
-    category: "system",
+    category: "system" as NotificationCategory,
   });
 
-  const types = ["info", "success", "warning", "error"];
-  const categories = ["system", "mobile", "desktop"];
+  const types = NOTIFICATION_TYPES;
+  const categories = NOTIFICATION_CATEGORIES;
 
-  const RANDOM_SAMPLES = [
+  const RANDOM_SAMPLES: { source: string; title: string; message: string; type: NotificationType; category: NotificationCategory }[] = [
     { source: "CI/CD", title: "Build Success", message: "Production build completed in 2m 45s.", type: "success", category: "system" },
     { source: "Auth Service", title: "New Sign-in", message: "New login detected from unusual IP: 192.168.1.1", type: "warning", category: "system" },
     { source: "Mobile App", title: "Crash Report", message: "Uncaught ReferenceError on Home screen.", type: "error", category: "mobile" },
@@ -247,7 +248,7 @@ ${authHeader} \\
   }
 </script>
 
-{#snippet selectDropdown(id: string, label: string, options: string[])}
+{#snippet selectDropdown(id: string, label: string, options: readonly string[])}
   <div>
     <label
       for={id}
@@ -342,7 +343,7 @@ ${authHeader} \\
                   />
                   <CopyButton 
                     text={keyState.generated} 
-                    className="bg-emerald-500/10!"
+                    className="bg-emerald-500/10"
                   />
                 </div>
                 <Button

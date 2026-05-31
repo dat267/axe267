@@ -32,6 +32,5 @@ export const ICONS = {
   TOC: '<line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>',
   PREV: '<polyline points="15 18 9 12 15 6"></polyline>',
   NEXT: '<polyline points="9 18 15 12 9 6"></polyline>',
-  TYPOGRAPHY: '<path d="M4 7V4h16v3M9 20h6M12 4v16"></path>',
-  CIPHER: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path>'
+  TYPOGRAPHY: '<path d="M4 7V4h16v3M9 20h6M12 4v16"></path>'
 };

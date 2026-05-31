@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev:frontend": "vite --host",
-    "dev:backend": "PROJECT_ID=axe267 PORT=8080 go run github.com/air-verse/air@latest",
+    "dev:backend": "PORT=8080 go run github.com/air-verse/air@latest",
     "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
     "build": "vite build",
     "preview": "vite preview"

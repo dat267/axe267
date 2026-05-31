@@ -61,7 +61,7 @@
   let automationTab = $state("bash");
 
   const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "[PROJECT_ID_MISSING]";
-  const apiUrl = $derived(typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:8080/api/notify" : `https://${projectId}.web.app/api/notify`);
+  const apiUrl = $derived(typeof window !== "undefined" ? `${window.location.origin}/api/notify` : `https://${projectId}.web.app/api/notify`);
 
   const authHeader = $derived(
     keyState.method === "bearer"

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto"
 	"crypto/rsa"
@@ -11,6 +12,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -42,27 +44,54 @@ type Notification struct {
 	Category string `json:"category"`
 }
 
+func loadEnv() {
+	f, err := os.Open(".env")
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "#") || !strings.Contains(line, "=") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		key := strings.TrimSpace(parts[0])
+		val := strings.TrimSpace(parts[1])
+		if os.Getenv(key) == "" {
+			os.Setenv(key, val)
+		}
+	}
+}
+
+func getProjectID() string {
+	if id := os.Getenv("PROJECT_ID"); id != "" {
+		return id
+	}
+	return os.Getenv("VITE_FIREBASE_PROJECT_ID")
+}
+
 func getAccessToken() string {
 	if token := os.Getenv("ACCESS_TOKEN"); token != "" {
 		return token
 	}
-	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", nil)
-	if err != nil {
-		return ""
-	}
+	// Try metadata server (GCP)
+	client := &http.Client{Timeout: 1 * time.Second}
+	req, _ := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", nil)
 	req.Header.Set("Metadata-Flavor", "Google")
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return ""
+	if resp, err := client.Do(req); err == nil {
+		defer resp.Body.Close()
+		var res map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
+			if token, ok := res["access_token"].(string); ok {
+				return token
+			}
+		}
 	}
-	defer resp.Body.Close()
-	var res map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return ""
-	}
-	if token, ok := res["access_token"].(string); ok {
-		return token
+	// Try gcloud (Local)
+	if out, err := exec.Command("gcloud", "auth", "print-access-token").Output(); err == nil {
+		return strings.TrimSpace(string(out))
 	}
 	return ""
 }
@@ -212,7 +241,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		projectID := os.Getenv("PROJECT_ID")
+		projectID := getProjectID()
 		authHeader := r.Header.Get("Authorization")
 		apiKey := r.Header.Get("x-api-key")
 		var user *FirebaseUser
@@ -234,7 +263,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 func handleNotify(w http.ResponseWriter, r *http.Request) {
-	projectID := os.Getenv("PROJECT_ID")
+	projectID := getProjectID()
 	userEmail := r.Header.Get("X-User-Email")
 	accessToken := getAccessToken()
 	if r.Method == "POST" {
@@ -362,13 +391,14 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 	resp := HealthResponse{
 		Status:    "ok",
 		Service:   "axe-backend",
-		ProjectID: os.Getenv("PROJECT_ID"),
+		ProjectID: getProjectID(),
 		Timestamp: time.Now().UTC(),
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
 }
 func main() {
+	loadEnv()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/notify", authMiddleware(handleNotify))
 	mux.HandleFunc("/api/health", handleHealth)
@@ -382,5 +412,8 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	server.ListenAndServe()
+	fmt.Printf("Starting server on port %s...\n", port)
+	if err := server.ListenAndServe(); err != nil {
+		fmt.Printf("Server failed: %v\n", err)
+	}
 }

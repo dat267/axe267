@@ -110,7 +110,7 @@ done`);
 # Forwards Windows Toast notifications to axe.
 # Note: Requires "Notification Access" permission for PowerShell.
 
-$ScriptBlock = {
+& {
     param (
         [string]$ApiUrl = "${apiUrl}",
         [string]$ApiKey = "${authHeaderValue}",
@@ -118,7 +118,30 @@ $ScriptBlock = {
         [switch]$SendExisting
     )
 
-    # Load API Key from the .env file if ApiKey is not explicitly passed
+    # 1. Relaunch in Windows PowerShell (5.1) if running in PowerShell Core/7+
+    # PowerShell 7 does not support native WinRT projections (ContentType=WindowsRuntime)
+    if ($PSEdition -eq 'Core') {
+        Write-Host "PowerShell 7+ detected. Relaunching in Windows PowerShell 5.1 for native Windows Runtime support..." -ForegroundColor Yellow
+
+        $paramString = ""
+        if ($PSBoundParameters.ContainsKey('ApiUrl')) { $paramString += " -ApiUrl '$($PSBoundParameters['ApiUrl'])'" } else { $paramString += " -ApiUrl '${apiUrl}'" }
+        if ($PSBoundParameters.ContainsKey('ApiKey')) { $paramString += " -ApiKey '$($PSBoundParameters['ApiKey'])'" } else { $paramString += " -ApiKey '${authHeaderValue}'" }
+        if ($PSBoundParameters.ContainsKey('PollInterval')) { $paramString += " -PollInterval $($PSBoundParameters['PollInterval'])" }
+        if ($PSBoundParameters.ContainsKey('SendExisting') -and $PSBoundParameters['SendExisting'].IsPresent) { $paramString += " -SendExisting" }
+
+        # Extract this block's string content and build encoded command relaunch
+        $scriptText = $MyInvocation.MyCommand.ScriptBlock.ToString()
+        $command = "& { $scriptText } $paramString"
+
+        $bytes = [System.Text.Encoding]::Unicode.GetBytes($command)
+        $encoded = [Convert]::ToBase64String($bytes)
+
+        # Run using the native powershell.exe engine
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded
+        exit $LASTEXITCODE
+    }
+
+    # 2. Load API Key from the .env file if ApiKey is not explicitly passed
     if (-not $ApiKey) {
         # Dynamically search up the directory tree to avoid hardcoding the .env path
         $searchDirs = @()
@@ -320,39 +343,7 @@ $ScriptBlock = {
 
         Start-Sleep -Seconds $PollInterval
     }
-}
-
-param (
-    [string]$ApiUrl = "${apiUrl}",
-    [string]$ApiKey = "${authHeaderValue}",
-    [int]$PollInterval = 2,
-    [switch]$SendExisting
-)
-
-# 1. Relaunch in Windows PowerShell (5.1) if running in PowerShell Core/7+
-# PowerShell 7 does not support native WinRT projections (ContentType=WindowsRuntime)
-if ($PSEdition -eq 'Core') {
-    Write-Host "PowerShell 7+ detected. Relaunching in Windows PowerShell 5.1 for native Windows Runtime support..." -ForegroundColor Yellow
-
-    $paramString = ""
-    if ($PSBoundParameters.ContainsKey('ApiUrl')) { $paramString += " -ApiUrl '$($PSBoundParameters['ApiUrl'])'" } else { $paramString += " -ApiUrl '${apiUrl}'" }
-    if ($PSBoundParameters.ContainsKey('ApiKey')) { $paramString += " -ApiKey '$($PSBoundParameters['ApiKey'])'" } else { $paramString += " -ApiKey '${authHeaderValue}'" }
-    if ($PSBoundParameters.ContainsKey('PollInterval')) { $paramString += " -PollInterval $($PSBoundParameters['PollInterval'])" }
-    if ($PSBoundParameters.ContainsKey('SendExisting') -and $PSBoundParameters['SendExisting'].IsPresent) { $paramString += " -SendExisting" }
-
-    $scriptText = $ScriptBlock.ToString()
-    $command = "& { $scriptText } $paramString"
-
-    $bytes = [System.Text.Encoding]::Unicode.GetBytes($command)
-    $encoded = [Convert]::ToBase64String($bytes)
-
-    # Run using the native powershell.exe engine
-    powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand $encoded
-    exit $LASTEXITCODE
-} else {
-    # If in Windows PowerShell 5.1, execute the script block directly
-    & $ScriptBlock @PSBoundParameters
-}`);
+} @args`);
 
   const androidScript = $derived(`#!/bin/bash
 # Axe Notification Mirror (Android / Termux)

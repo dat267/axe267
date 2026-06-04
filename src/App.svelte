@@ -77,10 +77,14 @@
         await clearAllNotifications(token);
         showClearConfirm = false;
         clearTimeout(confirmTimer);
+        if (notifications.length === 0) {
+          isDeleting = false;
+        } else {
+          setTimeout(() => { isDeleting = false; }, 5000);
+        }
       }
     } catch (e) {
       console.error(e);
-    } finally {
       isDeleting = false;
     }
   };
@@ -108,6 +112,9 @@
           }
           notifications = data;
           initialLoadDone = true;
+          if (isDeleting && data.length === 0) {
+            isDeleting = false;
+          }
         },
         notificationLimit,
       );

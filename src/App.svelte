@@ -59,6 +59,7 @@
   };
 
   let showClearConfirm = $state(false);
+  let isDeleting = $state(false);
   let confirmTimer;
 
   const handleClearAll = async () => {
@@ -72,11 +73,16 @@
     try {
       const token = await auth.currentUser?.getIdToken();
       if (token) {
+        isDeleting = true;
         await clearAllNotifications(token);
         showClearConfirm = false;
         clearTimeout(confirmTimer);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      isDeleting = false;
+    }
   };
 
   $effect(() => {
@@ -147,9 +153,14 @@
         </div>
         <div class="flex items-center gap-2">
           {#if currentPath === "/notifications"}
-            <button onclick={handleClearAll} disabled={notifications.length === 0} class="flex h-10 w-10 items-center justify-center rounded-md border {showClearConfirm ? 'border-rose-500 bg-rose-500 text-white hover:bg-rose-600' : 'border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground'} disabled:opacity-40 cursor-pointer transition-none select-none">
-              {#if showClearConfirm} {@render icon(ICONS.CHECK, 20)}
-              {:else} {@render icon(ICONS.DELETE, 20)} {/if}
+            <button onclick={handleClearAll} disabled={notifications.length === 0 || isDeleting} class="flex h-10 w-10 items-center justify-center rounded-md border {showClearConfirm ? 'border-rose-500 bg-rose-500 text-white hover:bg-rose-600' : 'border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground'} disabled:opacity-40 cursor-pointer transition-none select-none">
+              {#if isDeleting}
+                <span class="text-sm font-bold font-mono">...</span>
+              {:else if showClearConfirm} 
+                {@render icon(ICONS.CHECK, 20)}
+              {:else} 
+                {@render icon(ICONS.DELETE, 20)} 
+              {/if}
             </button>
           {/if}
           <button onclick={() => themeStore.toggleTheme()} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Theme">

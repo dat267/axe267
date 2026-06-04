@@ -44,6 +44,31 @@ type Notification struct {
 	Category string `json:"category"`
 }
 
+type FirestoreStringValue struct {
+	StringValue string `json:"stringValue"`
+}
+
+type APIKeyFields struct {
+	UserID    FirestoreStringValue `json:"userId"`
+	UserEmail FirestoreStringValue `json:"userEmail"`
+}
+
+type APIKeyDoc struct {
+	Fields APIKeyFields `json:"fields"`
+}
+
+type APIKeyQueryResult struct {
+	Document *APIKeyDoc `json:"document"`
+}
+
+type FirestoreDoc struct {
+	Name string `json:"name"`
+}
+
+type RunQueryResult struct {
+	Document *FirestoreDoc `json:"document"`
+}
+
 func loadEnv() {
 	f, err := os.Open(".env")
 	if err != nil {
@@ -208,25 +233,15 @@ func verifyAPIKey(apiKey, projectID, accessToken string) (*FirebaseUser, error) 
 		return nil, err
 	}
 	defer resp.Body.Close()
-	var results []map[string]interface{}
+	var results []APIKeyQueryResult
 	if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
 		return nil, err
 	}
-	if len(results) == 0 {
+	if len(results) == 0 || results[0].Document == nil {
 		return nil, fmt.Errorf("invalid key")
 	}
-	doc, ok := results[0]["document"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("document not found")
-	}
-	fields, ok := doc["fields"].(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("fields not found")
-	}
-	uIDVal, _ := fields["userId"].(map[string]interface{})
-	uID, _ := uIDVal["stringValue"].(string)
-	emailVal, _ := fields["userEmail"].(map[string]interface{})
-	email, _ := emailVal["stringValue"].(string)
+	uID := results[0].Document.Fields.UserID.StringValue
+	email := results[0].Document.Fields.UserEmail.StringValue
 	if uID == "" || email == "" {
 		return nil, fmt.Errorf("invalid user fields")
 	}
@@ -301,10 +316,11 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Firestore failed", http.StatusInternalServerError)
 			return
 		}
-		var res map[string]interface{}
+		var res struct {
+			Name string `json:"name"`
+		}
 		json.NewDecoder(resp.Body).Decode(&res)
-		name, _ := res["name"].(string)
-		parts := strings.Split(name, "/")
+		parts := strings.Split(res.Name, "/")
 		docID := parts[len(parts)-1]
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"id": docID})
@@ -335,14 +351,12 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer resp.Body.Close()
-		var results []map[string]interface{}
+		var results []RunQueryResult
 		json.NewDecoder(resp.Body).Decode(&results)
 		var writes []interface{}
 		for _, item := range results {
-			if doc, ok := item["document"].(map[string]interface{}); ok {
-				if name, ok := doc["name"].(string); ok {
-					writes = append(writes, map[string]string{"delete": name})
-				}
+			if item.Document != nil && item.Document.Name != "" {
+				writes = append(writes, map[string]string{"delete": item.Document.Name})
 			}
 		}
 		if len(writes) == 0 {

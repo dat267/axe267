@@ -1,18 +1,21 @@
 <script>
   import { Link } from "svelte-routing";
   import { ICONS } from "../lib/utils/icons";
+  import { authStore } from "../lib/stores/authStore.svelte.js";
 
-  const APPS = [
+  const APPS = $derived([
     { to: "/notifications", label: "Notifications", icon: ICONS.NOTIFICATION },
-    { to: "/reader", label: "Reader", icon: ICONS.BOOK },
+    ...(authStore.isAdmin ? [{ to: "/reader", label: "Reader", icon: ICONS.BOOK }] : []),
     { to: "/integrations", label: "Integrations", icon: ICONS.INTEGRATION },
     { to: "/settings", label: "Settings", icon: ICONS.SETTINGS },
-  ];
+  ]);
 
   $effect(() => {
     const prefetch = () => {
       import("./Notifications.svelte");
-      import("./Reader.svelte");
+      if (authStore.isAdmin) {
+        import("./Reader.svelte");
+      }
       import("./Integrations.svelte");
       import("./Settings.svelte");
     };

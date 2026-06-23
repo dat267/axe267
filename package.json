@@ -1,29 +1,13 @@
 {
-  "name": "axe",
+  "name": "axe-root",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
   "scripts": {
-    "dev:frontend": "vite --host",
-    "dev:backend": "PORT=8080 go run github.com/air-verse/air@latest",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "cd backend && PORT=8080 go run github.com/air-verse/air@latest",
     "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build:frontend": "npm run build --prefix frontend"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "latest",
-    "@tailwindcss/postcss": "latest",
-    "autoprefixer": "latest",
-    "concurrently": "latest",
-    "firebase-tools": "latest",
-    "postcss": "latest",
-    "svelte": "latest",
-    "vite": "latest"
-  },
-  "dependencies": {
-    "epubjs": "latest",
-    "firebase": "latest",
-    "jszip": "latest",
-    "svelte-routing": "latest"
+    "concurrently": "latest"
   }
 }

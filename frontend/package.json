@@ -1,0 +1,25 @@
+{
+  "name": "axe-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "latest",
+    "@tailwindcss/postcss": "latest",
+    "autoprefixer": "latest",
+    "postcss": "latest",
+    "svelte": "latest",
+    "vite": "latest"
+  },
+  "dependencies": {
+    "epubjs": "latest",
+    "firebase": "latest",
+    "jszip": "latest",
+    "svelte-routing": "latest"
+  }
+}

@@ -58,6 +58,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Authenticate with GCP
+        id: auth
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -85,3 +86,4 @@ jobs:
           npx -y firebase-tools deploy --only hosting --project $PROJECT_ID --non-interactive
         env:
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}

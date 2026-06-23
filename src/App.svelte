@@ -16,7 +16,6 @@
     requestNotificationPermission,
     sendLocalNotification,
   } from "./lib/utils/notificationPermission.js";
-  import Auth from "./pages/Authentication.svelte";
   import Home from "./pages/Home.svelte";
   import Lazy from "./lib/components/Lazy.svelte";
 
@@ -139,7 +138,7 @@
     <div class="text-sm font-bold uppercase tracking-widest text-gray-500">loading...</div>
   </div>
 {:else if !authStore.user || !authStore.isVerified}
-  <Auth />
+  <Lazy load={() => import("./pages/Authentication.svelte")} />
 {:else}
   <Router {url}>
     <div class="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">

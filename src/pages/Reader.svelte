@@ -1,7 +1,7 @@
 <script>
   import { onMount, tick } from "svelte";
   import ePub from "epubjs";
-  import { auth, storage, db } from "../lib/services/firebase";
+  import { auth, db, getStorageInstance } from "../lib/services/firebase";
   import { authStore } from "../lib/stores/authStore.svelte.js";
   import { themeStore } from "../lib/stores/themeStore.svelte.js";
   import { ICONS } from "../lib/utils/icons";
@@ -11,6 +11,7 @@
   import Modal from "../lib/components/Modal.svelte";
   import Input from "../lib/components/Input.svelte";
 
+  let storage;
   let readerElement = $state();
   let rendition;
   let book;
@@ -85,6 +86,9 @@
   async function loadLibrary() {
     isLoading = true;
     try {
+      if (!storage) {
+        storage = await getStorageInstance();
+      }
       const rootRef = ref(storage, "books");
       const res = await listAll(rootRef);
       const newCollections = [];
@@ -499,7 +503,7 @@
     }
   }
 
-  onMount(() => {
+  onMount(async () => {
     const cachedLib = localStorage.getItem("axe_library_cache");
     if (cachedLib) {
       try {
@@ -510,6 +514,11 @@
       } catch (ce) {
         console.warn("Failed to parse library cache:", ce);
       }
+    }
+    try {
+      storage = await getStorageInstance();
+    } catch (err) {
+      console.error("Failed to load Firebase storage module:", err);
     }
     loadLibrary();
     const savedSettings = localStorage.getItem("axe_reader_settings");

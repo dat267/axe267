@@ -17,10 +17,12 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - '.github/workflows/**'
             frontend:
               - 'frontend/**'
               - 'firestore.indexes.json'
               - 'firebase.json'
+              - '.github/workflows/**'
 
   deploy-backend:
     needs: filter

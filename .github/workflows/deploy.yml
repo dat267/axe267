@@ -82,8 +82,8 @@ jobs:
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
       - name: Deploy Frontend to Firebase Hosting
         run: |
-          npx -y firebase-tools deploy --only firestore:indexes --project $PROJECT_ID --non-interactive
-          npx -y firebase-tools deploy --only hosting --project $PROJECT_ID --non-interactive
+          npx -y firebase-tools deploy --only firestore:indexes --project $PROJECT_ID --non-interactive --debug
+          npx -y firebase-tools deploy --only hosting --project $PROJECT_ID --non-interactive --debug
         env:
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}

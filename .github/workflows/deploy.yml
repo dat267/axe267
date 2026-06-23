@@ -81,10 +81,7 @@ jobs:
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
       - name: Deploy Frontend to Firebase Hosting
         run: |
-          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > gcp_key.json
-          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp_key.json
           npx -y firebase-tools deploy --only firestore:indexes --project $PROJECT_ID --non-interactive
           npx -y firebase-tools deploy --only hosting --project $PROJECT_ID --non-interactive
-          rm gcp_key.json
         env:
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}

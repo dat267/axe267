@@ -83,7 +83,11 @@ jobs:
       - name: Deploy Frontend to Firebase Hosting
         run: |
           npx -y firebase-tools deploy --only firestore:indexes --project $PROJECT_ID --non-interactive
-          npx -y firebase-tools deploy --only hosting --project $PROJECT_ID --non-interactive
+          out=$(npx -y firebase-tools deploy --only hosting --project $PROJECT_ID --non-interactive 2>&1) && echo "$out" || {
+            echo "$out"
+            echo "$out" | grep -q "is the current active version" || exit 1
+            echo "Hosting already up to date, skipping."
+          }
         env:
           PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}

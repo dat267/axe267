@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - main
-permissions:
-  contents: read
-  id-token: write
 jobs:
   filter:
     runs-on: ubuntu-latest
@@ -36,8 +33,7 @@ jobs:
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: 'projects/72627348278/locations/global/workloadIdentityPools/github-actions/providers/github'
-          service_account: 'firebase-adminsdk-fbsvc@axe267.iam.gserviceaccount.com'
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
       - name: Deploy Go Backend to Cloud Run
@@ -65,8 +61,7 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v3
         with:
-          workload_identity_provider: 'projects/72627348278/locations/global/workloadIdentityPools/github-actions/providers/github'
-          service_account: 'firebase-adminsdk-fbsvc@axe267.iam.gserviceaccount.com'
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       - uses: actions/setup-node@v6
         with:
           node-version: '22'

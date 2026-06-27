@@ -124,11 +124,11 @@ func verifyFirebaseToken(token, projectID string) (*FirebaseUser, error) {
 
 func verifyAPIKey(apiKey, projectID, accessToken string) (*FirebaseUser, error) {
 	url := fmt.Sprintf("https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents:runQuery", projectID)
-	query := map[string]interface{}{
-		"structuredQuery": map[string]interface{}{
-			"from": []interface{}{map[string]string{"collectionId": "api_keys"}},
-			"where": map[string]interface{}{
-				"fieldFilter": map[string]interface{}{
+	query := map[string]any{
+		"structuredQuery": map[string]any{
+			"from": []any{map[string]string{"collectionId": "api_keys"}},
+			"where": map[string]any{
+				"fieldFilter": map[string]any{
 					"field": map[string]string{"fieldPath": "key"},
 					"op":    "EQUAL",
 					"value": map[string]string{"stringValue": apiKey},

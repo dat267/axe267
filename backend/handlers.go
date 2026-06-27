@@ -53,15 +53,16 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 	projectID := getProjectID()
 	userEmail := r.Header.Get("X-User-Email")
 	accessToken := getAccessToken()
-	if r.Method == "POST" {
+	switch r.Method {
+	case "POST":
 		var notif Notification
 		if err := json.NewDecoder(r.Body).Decode(&notif); err != nil {
 			http.Error(w, "Bad Request", http.StatusBadRequest)
 			return
 		}
 		url := fmt.Sprintf("https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents/notifications", projectID)
-		body := map[string]interface{}{
-			"fields": map[string]interface{}{
+		body := map[string]any{
+			"fields": map[string]any{
 				"userEmail": map[string]string{"stringValue": userEmail},
 				"type":      map[string]string{"stringValue": notif.Type},
 				"source":    map[string]string{"stringValue": notif.Source},
@@ -96,13 +97,13 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 		docID := parts[len(parts)-1]
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"id": docID})
-	} else if r.Method == "DELETE" {
+	case "DELETE":
 		queryUrl := fmt.Sprintf("https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents:runQuery", projectID)
-		query := map[string]interface{}{
-			"structuredQuery": map[string]interface{}{
-				"from": []interface{}{map[string]string{"collectionId": "notifications"}},
-				"where": map[string]interface{}{
-					"fieldFilter": map[string]interface{}{
+		query := map[string]any{
+			"structuredQuery": map[string]any{
+				"from": []any{map[string]string{"collectionId": "notifications"}},
+				"where": map[string]any{
+					"fieldFilter": map[string]any{
 						"field": map[string]string{"fieldPath": "userEmail"},
 						"op":    "EQUAL",
 						"value": map[string]string{"stringValue": userEmail},
@@ -125,7 +126,7 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 		defer resp.Body.Close()
 		var results []RunQueryResult
 		json.NewDecoder(resp.Body).Decode(&results)
-		var writes []interface{}
+		var writes []any
 		for _, item := range results {
 			if item.Document != nil && item.Document.Name != "" {
 				writes = append(writes, map[string]string{"delete": item.Document.Name})
@@ -137,7 +138,7 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		commitUrl := fmt.Sprintf("https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents:commit", projectID)
-		commitBody := map[string]interface{}{"writes": writes}
+		commitBody := map[string]any{"writes": writes}
 		commitBytes, _ := json.Marshal(commitBody)
 		creq, _ := http.NewRequest("POST", commitUrl, bytes.NewBuffer(commitBytes))
 		creq.Header.Set("Content-Type", "application/json")

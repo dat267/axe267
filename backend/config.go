@@ -48,7 +48,7 @@ func getAccessToken() string {
 	req.Header.Set("Metadata-Flavor", "Google")
 	if resp, err := client.Do(req); err == nil {
 		defer resp.Body.Close()
-		var res map[string]interface{}
+		var res map[string]any
 		if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
 			if token, ok := res["access_token"].(string); ok {
 				return token

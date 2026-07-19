@@ -8,9 +8,10 @@ A professional, responsive notification dashboard and minimalist EPUB reader bui
 
 1.  **Clone & Install**
     ```bash
-    git clone https://github.com/your-username/notifidash.git
-    cd notifidash
+    git clone https://github.com/dat267/axe267.git
+    cd axe267
     npm install
+    cd frontend && bun install && cd ..
     ```
 
 2.  **Environment Setup**
@@ -22,6 +23,7 @@ A professional, responsive notification dashboard and minimalist EPUB reader bui
     VITE_FIREBASE_STORAGE_BUCKET=...
     VITE_FIREBASE_MESSAGING_SENDER_ID=...
     VITE_FIREBASE_APP_ID=...
+    VITE_FIREBASE_MEASUREMENT_ID=...
     ```
 
 3.  **Run Development Server**
@@ -139,17 +141,28 @@ This project uses **Firebase Hosting** for the frontend and **Google Cloud Run**
 
 3.  **Deploy Go Backend to Cloud Run**
     ```bash
-    gcloud run deploy axe-backend --source . --region asia-southeast1
+    gcloud run deploy axe-backend --source backend --region asia-southeast1
     ```
 
 ### 2. Automated Deployment
-The project includes a GitHub Action in `.github/workflows/deploy.yml` that automatically deploys both the frontend and backend on every push to `main`.
+The project includes a GitHub Action in `.github/workflows/deploy.yml` that automatically deploys both the frontend and backend on every push to `main`. A separate release workflow (`.github/workflows/release.yml`) builds cross-platform backend binaries and frontend server binaries on every push.
 
 ---
 
 ## 🛠 Tech Stack
-- **Frontend:** Svelte 5 (Runes), TypeScript, Vite
+- **Frontend:** Svelte 5 (Runes), JavaScript, Vite, Bun
 - **Backend:** Go (Cloud Run), Firestore
 - **Hosting:** Firebase Hosting
 - **Styling:** Tailwind CSS v4
-- **Deployment:** GitHub Actions
+- **Testing:** Vitest
+- **CI/CD:** GitHub Actions
+
+## 📦 Releases
+
+Every push to `main` publishes a release under the `axe/<sha>` tag containing:
+
+- **Backend binaries** — `axe-backend-{linux,darwin,windows}-{amd64,arm64}` (Go)
+- **Frontend binaries** — `axe-frontend-bun-{linux,darwin,windows}-{x64,arm64}` (Bun-compiled server)
+- **Frontend static assets** — `axe-frontend-dist.tar.gz`
+
+Only the 3 most recent releases are kept; older ones are automatically pruned.

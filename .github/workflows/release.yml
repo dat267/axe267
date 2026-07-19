@@ -10,6 +10,7 @@ permissions:
   contents: write
 
 env:
+  TAG_PREFIX:    axe
   KEEP_RELEASES: ${{ vars.KEEP_RELEASES || '3' }}
 
 jobs:
@@ -42,7 +43,7 @@ jobs:
           [ "${{ matrix.goos }}" = "windows" ] && SUFFIX=".exe"
           OUT="axe-backend-${{ matrix.goos }}-${{ matrix.goarch }}${SUFFIX}"
           go build \
-            -ldflags "-s -w -X main.version=axe-backend/${{ github.sha }}" \
+            -ldflags "-s -w -X main.version=${{ env.TAG_PREFIX }}/${{ github.sha }}" \
             -o "$OUT" .
 
       - uses: actions/upload-artifact@v7
@@ -74,21 +75,21 @@ jobs:
           name: frontend
           path: axe-frontend.tar.gz
 
-  release-backend:
-    needs: backend
+  release:
+    needs: [backend, frontend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
         with:
-          pattern: backend-*
+          pattern: "*"
           merge-multiple: true
 
       - name: Compute tag
         id: meta
         run: |
           SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "tag=axe-backend/${SHA}" >> "$GITHUB_OUTPUT"
-          echo "name=axe-backend ${SHA}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ env.TAG_PREFIX }}/${SHA}" >> "$GITHUB_OUTPUT"
+          echo "name=Release ${{ env.TAG_PREFIX }}/${SHA}" >> "$GITHUB_OUTPUT"
 
       - uses: softprops/action-gh-release@v3
         with:
@@ -96,53 +97,17 @@ jobs:
           name:                   ${{ steps.meta.outputs.name }}
           target_commitish:       ${{ github.sha }}
           generate_release_notes: true
-          files: "axe-backend-*"
+          files: "*"
 
-      - name: Clean up old releases
+      - name: Clean up old releases (keep ${{ env.KEEP_RELEASES }} most recent)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO:  ${{ github.repository }}
         run: |
+          PREFIX="${{ env.TAG_PREFIX }}/"
           releases=$(gh release list --limit 100 --json tagName \
-            | jq -r '.[].tagName' | grep "^axe-backend/")
-          count=0
-          for tag in $releases; do
-            count=$((count + 1))
-            [ "$count" -le "${{ env.KEEP_RELEASES }}" ] && continue
-            echo "Deleting: $tag"
-            gh release delete "$tag" --yes --cleanup-tag || true
-          done
+            | jq -r '.[].tagName' | grep "^${PREFIX}")
 
-  release-frontend:
-    needs: frontend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: frontend
-
-      - name: Compute tag
-        id: meta
-        run: |
-          SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "tag=axe-frontend/${SHA}" >> "$GITHUB_OUTPUT"
-          echo "name=axe-frontend ${SHA}" >> "$GITHUB_OUTPUT"
-
-      - uses: softprops/action-gh-release@v3
-        with:
-          tag_name:               ${{ steps.meta.outputs.tag }}
-          name:                   ${{ steps.meta.outputs.name }}
-          target_commitish:       ${{ github.sha }}
-          generate_release_notes: true
-          files: "axe-frontend.*"
-
-      - name: Clean up old releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO:  ${{ github.repository }}
-        run: |
-          releases=$(gh release list --limit 100 --json tagName \
-            | jq -r '.[].tagName' | grep "^axe-frontend/")
           count=0
           for tag in $releases; do
             count=$((count + 1))

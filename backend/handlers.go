@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -49,17 +50,100 @@ type HealthResponse struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
+const maxBodySize = 1 << 16 // 64KB
+const maxFieldLength = 500
+const maxNotificationsPerDelete = 500
+
+var (
+	rateLimiters = sync.Map{}
+	rateLimitMu  sync.Mutex
+)
+
+type ipLimiter struct {
+	count  int
+	last   time.Time
+	limit  int
+	window time.Duration
+}
+
+func getRateLimiter(ip string, limit int, window time.Duration) *ipLimiter {
+	val, _ := rateLimiters.LoadOrStore(ip, &ipLimiter{limit: limit, window: window, last: time.Now()})
+	lm := val.(*ipLimiter)
+	rateLimitMu.Lock()
+	defer rateLimitMu.Unlock()
+	if time.Since(lm.last) > lm.window {
+		lm.count = 0
+		lm.last = time.Now()
+	}
+	lm.count++
+	return lm
+}
+
+func isRateLimited(ip string) bool {
+	lm := getRateLimiter(ip, 60, time.Minute)
+	return lm.count > lm.limit
+}
+
+func validateNotification(notif Notification) string {
+	if len(notif.Title) == 0 || len(notif.Title) > maxFieldLength {
+		return "title is required and must be under 500 characters"
+	}
+	if len(notif.Message) == 0 || len(notif.Message) > maxFieldLength {
+		return "message is required and must be under 500 characters"
+	}
+	if len(notif.Source) == 0 || len(notif.Source) > maxFieldLength {
+		return "source is required and must be under 500 characters"
+	}
+	validTypes := map[string]bool{"info": true, "success": true, "warning": true, "error": true}
+	if !validTypes[notif.Type] {
+		return "type must be one of: info, success, warning, error"
+	}
+	validCategories := map[string]bool{"system": true, "mobile": true, "desktop": true}
+	if !validCategories[notif.Category] {
+		return "category must be one of: system, mobile, desktop"
+	}
+	return ""
+}
+
+func setCORSHeaders(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key")
+}
+
 func handleNotify(w http.ResponseWriter, r *http.Request) {
+	setCORSHeaders(w)
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	ip := r.RemoteAddr
+	if idx := strings.LastIndex(ip, ":"); idx >= 0 {
+		ip = ip[:idx]
+	}
+	if isRateLimited(ip) {
+		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
+		return
+	}
+
 	projectID := getProjectID()
 	userEmail := r.Header.Get("X-User-Email")
 	accessToken := getAccessToken()
+
 	switch r.Method {
 	case "POST":
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 		var notif Notification
 		if err := json.NewDecoder(r.Body).Decode(&notif); err != nil {
-			http.Error(w, "Bad Request", http.StatusBadRequest)
+			http.Error(w, "Bad Request: invalid JSON or body too large", http.StatusBadRequest)
 			return
 		}
+		if errMsg := validateNotification(notif); errMsg != "" {
+			http.Error(w, errMsg, http.StatusBadRequest)
+			return
+		}
+
 		url := fmt.Sprintf("https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents/notifications", projectID)
 		body := map[string]any{
 			"fields": map[string]any{
@@ -72,8 +156,16 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 				"createdAt": map[string]string{"timestampValue": time.Now().UTC().Format(time.RFC3339)},
 			},
 		}
-		bodyBytes, _ := json.Marshal(body)
-		req, _ := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+		req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
 		req.Header.Set("Content-Type", "application/json")
 		if accessToken != "" {
 			req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -92,11 +184,17 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 		var res struct {
 			Name string `json:"name"`
 		}
-		json.NewDecoder(resp.Body).Decode(&res)
+		if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+			http.Error(w, "Firestore decode failed", http.StatusInternalServerError)
+			return
+		}
 		parts := strings.Split(res.Name, "/")
 		docID := parts[len(parts)-1]
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"id": docID})
+		if err := json.NewEncoder(w).Encode(map[string]string{"id": docID}); err != nil {
+			http.Error(w, "Response encode failed", http.StatusInternalServerError)
+		}
+
 	case "DELETE":
 		queryUrl := fmt.Sprintf("https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents:runQuery", projectID)
 		query := map[string]any{
@@ -111,8 +209,16 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		}
-		bodyBytes, _ := json.Marshal(query)
-		req, _ := http.NewRequest("POST", queryUrl, bytes.NewBuffer(bodyBytes))
+		bodyBytes, err := json.Marshal(query)
+		if err != nil {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+		req, err := http.NewRequest("POST", queryUrl, bytes.NewBuffer(bodyBytes))
+		if err != nil {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
 		req.Header.Set("Content-Type", "application/json")
 		if accessToken != "" {
 			req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -125,7 +231,10 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 		}
 		defer resp.Body.Close()
 		var results []RunQueryResult
-		json.NewDecoder(resp.Body).Decode(&results)
+		if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
+			http.Error(w, "Firestore decode failed", http.StatusInternalServerError)
+			return
+		}
 		var writes []any
 		for _, item := range results {
 			if item.Document != nil && item.Document.Name != "" {
@@ -137,10 +246,21 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(map[string]int{"count": 0})
 			return
 		}
+		if len(writes) > maxNotificationsPerDelete {
+			writes = writes[:maxNotificationsPerDelete]
+		}
 		commitUrl := fmt.Sprintf("https://firestore.googleapis.com/v1/projects/%s/databases/(default)/documents:commit", projectID)
 		commitBody := map[string]any{"writes": writes}
-		commitBytes, _ := json.Marshal(commitBody)
-		creq, _ := http.NewRequest("POST", commitUrl, bytes.NewBuffer(commitBytes))
+		commitBytes, err := json.Marshal(commitBody)
+		if err != nil {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
+		creq, err := http.NewRequest("POST", commitUrl, bytes.NewBuffer(commitBytes))
+		if err != nil {
+			http.Error(w, "Internal error", http.StatusInternalServerError)
+			return
+		}
 		creq.Header.Set("Content-Type", "application/json")
 		if accessToken != "" {
 			creq.Header.Set("Authorization", "Bearer "+accessToken)
@@ -152,7 +272,12 @@ func handleNotify(w http.ResponseWriter, r *http.Request) {
 		}
 		defer cresp.Body.Close()
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]int{"count": len(writes)})
+		if err := json.NewEncoder(w).Encode(map[string]int{"count": len(writes)}); err != nil {
+			http.Error(w, "Response encode failed", http.StatusInternalServerError)
+		}
+
+	default:
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 	}
 }
 
@@ -175,5 +300,14 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().UTC(),
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, "Response encode failed", http.StatusInternalServerError)
+	}
+}
+
+func writeJSON(w http.ResponseWriter, v any) {
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		http.Error(w, "Response encode failed", http.StatusInternalServerError)
+	}
 }

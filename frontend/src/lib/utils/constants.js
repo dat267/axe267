@@ -1,3 +1,7 @@
+export const EPUB_CACHE_NAME = "axe-epub-cache-v1";
+
+export const LOCATIONS_GENERATE_COUNT = 1600;
+
 export const NOTIFICATION_TYPES = ["info", "success", "warning", "error"];
 
 export const NOTIFICATION_CATEGORIES = ["system", "mobile", "desktop"];

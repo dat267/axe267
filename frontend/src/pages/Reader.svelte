@@ -5,11 +5,13 @@
   import { authStore } from "../lib/stores/authStore.svelte.js";
   import { themeStore } from "../lib/stores/themeStore.svelte.js";
   import { ICONS } from "../lib/utils/icons";
+  import { EPUB_CACHE_NAME, LOCATIONS_GENERATE_COUNT } from "../lib/utils/constants";
   import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
   import Modal from "../lib/components/Modal.svelte";
   import Input from "../lib/components/Input.svelte";
+  import Icon from "../lib/components/Icon.svelte";
 
   let storage;
   let readerElement = $state();
@@ -267,14 +269,12 @@
     localStorage.setItem("axe_reader_session", JSON.stringify({ name: title, url, filePath }));
     if (window.history.state?.reader !== true) window.history.pushState({ reader: true }, "");
     await tick();
-    if (book) book.destroy();
     let bookData;
     const canCache = typeof window !== 'undefined' && 'caches' in window;
     try {
       if (!canCache) throw new Error("Cache API not available");
-      const cacheName = "axe-epub-cache-v1";
       const cacheKey = `https://axe-local/${encodeURIComponent(filePath)}?url=${encodeURIComponent(url)}`;
-      const cache = await caches.open(cacheName);
+      const cache = await caches.open(EPUB_CACHE_NAME);
       const cachedResponse = await cache.match(cacheKey);
       if (cachedResponse) {
         bookData = await cachedResponse.blob();
@@ -296,9 +296,8 @@
       if (canCache) console.warn("Cache error, falling back:", e);
       try {
         if (!canCache) throw new Error("Cache API not available");
-        const cacheName = "axe-epub-cache-v1";
         const prefix = `https://axe-local/${encodeURIComponent(filePath)}`;
-        const cache = await caches.open(cacheName);
+        const cache = await caches.open(EPUB_CACHE_NAME);
         const keys = await cache.keys();
         const match = keys.find(r => r.url.startsWith(prefix));
         if (match) {
@@ -373,7 +372,7 @@
         book.locations.load(saved);
         return book.locations;
       } else {
-        return book.locations.generate(1600).then(() => {
+        return book.locations.generate(LOCATIONS_GENERATE_COUNT).then(() => {
           try {
             if (book) localStorage.setItem(storageKey, book.locations.save());
           } catch (le) {
@@ -477,9 +476,8 @@
       const canCache = typeof window !== 'undefined' && 'caches' in window;
       try {
         if (canCache) {
-          const cacheName = "axe-epub-cache-v1";
           const prefix = `https://axe-local/${encodeURIComponent(bookItem.filePath)}`;
-          const cache = await caches.open(cacheName);
+          const cache = await caches.open(EPUB_CACHE_NAME);
           const keys = await cache.keys();
           for (const req of keys) {
             if (req.url.startsWith(prefix)) {
@@ -540,12 +538,6 @@
     selectedCollectionId === "all" ? tracks : tracks.filter(t => t.collectionId === selectedCollectionId)
   );
 </script>
-
-{#snippet icon(svg, size = 18)}
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    {@html svg}
-  </svg>
-{/snippet}
 
 <div class="flex flex-1 flex-col">
   <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-4">
@@ -648,7 +640,7 @@
             class="flex flex-1 items-center gap-4 text-left overflow-hidden h-full cursor-pointer"
           >
             <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-border bg-surface text-foreground group-hover:bg-foreground group-hover:text-background group-hover:border-foreground transition-none">
-              {@render icon(ICONS.BOOK, 20)}
+              <Icon svg={ICONS.BOOK} size={20} />
             </div>
             <div class="flex flex-col overflow-hidden">
               <span class="text-xs font-bold uppercase tracking-widest text-gray-500 group-hover:text-foreground transition-none truncate">{bookItem.title}</span>
@@ -662,7 +654,7 @@
               class="flex h-10 w-10 items-center justify-center rounded-md border border-transparent text-gray-400 hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/20 transition-none cursor-pointer shrink-0"
               aria-label="Delete book"
             >
-              {@render icon(ICONS.DELETE, 18)}
+              <Icon svg={ICONS.DELETE} size={18} />
             </button>
           {/if}
         </div>
@@ -680,11 +672,11 @@
         </div>
         <div class="flex items-center gap-2">
           <button onclick={() => themeStore.toggleTheme()} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Theme">
-            {#if themeStore.darkMode} {@render icon(ICONS.SUN, 20)}
-            {:else} {@render icon(ICONS.MOON, 20)} {/if}
+            {#if themeStore.darkMode} <Icon svg={ICONS.SUN} size={20} />
+            {:else} <Icon svg={ICONS.MOON} size={20} /> {/if}
           </button>
           <button onclick={() => closeReader()} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-none select-none" aria-label="Close reader">
-            {@render icon(ICONS.CLOSE, 20)}
+            <Icon svg={ICONS.CLOSE} size={20} />
           </button>
         </div>
       </header>
@@ -728,7 +720,7 @@
                 </div>
                 <button onclick={performSearch} disabled={isSearching} class="h-10 w-10 flex items-center justify-center shrink-0 border border-border rounded-md bg-surface hover:bg-foreground hover:text-background hover:border-foreground text-foreground transition-none cursor-pointer">
                   {#if isSearching} <span class="text-[10px] font-bold opacity-70 tracking-widest">...</span>
-                  {:else} {@render icon(ICONS.SEARCH, 14)} {/if}
+                  {:else} <Icon svg={ICONS.SEARCH} size={14} /> {/if}
                 </button>
               </div>
               <div class="flex-1 overflow-y-auto space-y-3 pr-3">
@@ -793,21 +785,21 @@
 
       <footer class="shrink-0 h-16 flex items-center justify-between border-t border-border bg-background p-4 md:px-8">
         <button onclick={prev} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground transition-none cursor-pointer" aria-label="Prev">
-          {@render icon(ICONS.PREV, 20)}
+          <Icon svg={ICONS.PREV} size={20} />
         </button>
         <div class="flex items-center gap-1 rounded-md border border-border bg-background p-1">
           <button onclick={() => { showSettings = !showSettings; showGoTo = false; showToc = false; }} class="flex h-10 w-10 items-center justify-center rounded-sm transition-none cursor-pointer {showSettings ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}" aria-label="Typography settings">
-            {@render icon(ICONS.TYPOGRAPHY, 18)}
+            <Icon svg={ICONS.TYPOGRAPHY} size={18} />
           </button>
           <button onclick={() => { showGoTo = !showGoTo; showToc = false; showSettings = false; }} class="flex h-10 w-10 items-center justify-center rounded-sm transition-none cursor-pointer {showGoTo ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}" aria-label="Search book">
-            {@render icon(ICONS.SEARCH, 18)}
+            <Icon svg={ICONS.SEARCH} size={18} />
           </button>
           <button onclick={() => { showToc = !showToc; showGoTo = false; showSettings = false; }} class="flex h-10 w-10 items-center justify-center rounded-sm transition-none cursor-pointer {showToc ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}" aria-label="Table of contents">
-            {@render icon(ICONS.TOC, 18)}
+            <Icon svg={ICONS.TOC} size={18} />
           </button>
         </div>
         <button onclick={next} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground transition-none cursor-pointer" aria-label="Next">
-          {@render icon(ICONS.NEXT, 20)}
+          <Icon svg={ICONS.NEXT} size={20} />
         </button>
       </footer>
     </div>

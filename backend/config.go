@@ -3,9 +3,9 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
 	"time"
 )
@@ -42,22 +42,27 @@ func getAccessToken() string {
 	if token := os.Getenv("ACCESS_TOKEN"); token != "" {
 		return token
 	}
-	// Try metadata server (GCP)
 	client := &http.Client{Timeout: 1 * time.Second}
-	req, _ := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", nil)
+	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", nil)
+	if err != nil {
+		return ""
+	}
 	req.Header.Set("Metadata-Flavor", "Google")
-	if resp, err := client.Do(req); err == nil {
-		defer resp.Body.Close()
-		var res map[string]any
-		if err := json.NewDecoder(resp.Body).Decode(&res); err == nil {
-			if token, ok := res["access_token"].(string); ok {
-				return token
-			}
-		}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("Warning: metadata server not available: %v\n", err)
+		return ""
 	}
-	// Try gcloud (Local)
-	if out, err := exec.Command("gcloud", "auth", "print-access-token").Output(); err == nil {
-		return strings.TrimSpace(string(out))
+	defer resp.Body.Close()
+	var res map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		fmt.Printf("Warning: failed to decode metadata response: %v\n", err)
+		return ""
 	}
-	return ""
+	token, ok := res["access_token"].(string)
+	if !ok {
+		fmt.Printf("Warning: no access_token in metadata response\n")
+		return ""
+	}
+	return token
 }

@@ -36,24 +36,34 @@ class AuthStore {
   set isVerified(value) { this.#isVerified = value; }
   get isAdmin() { return this.#isAdmin; }
   async refreshStatus() {
-    if (auth.currentUser) {
-      console.log("Refreshing auth status...");
-      await auth.currentUser.reload();
-      this.#user = auth.currentUser;
-      this.#isVerified = auth.currentUser.emailVerified;
-      try {
-        const idTokenResult = await auth.currentUser.getIdTokenResult(true);
-        this.#isAdmin = !!idTokenResult.claims.admin;
-        if (!this.#isAdmin) {
-          const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-          if (userDoc.exists() && userDoc.data().role === "admin") {
-            this.#isAdmin = true;
-          }
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      await user.reload();
+    } catch (e) {
+      console.warn("Failed to reload user:", e);
+      return;
+    }
+    const refreshedUser = auth.currentUser;
+    if (!refreshedUser) {
+      this.#user = null;
+      this.#isVerified = false;
+      this.#isAdmin = false;
+      return;
+    }
+    this.#user = refreshedUser;
+    this.#isVerified = refreshedUser.emailVerified;
+    try {
+      const idTokenResult = await refreshedUser.getIdTokenResult(true);
+      this.#isAdmin = !!idTokenResult.claims.admin;
+      if (!this.#isAdmin) {
+        const userDoc = await getDoc(doc(db, "users", refreshedUser.uid));
+        if (userDoc.exists() && userDoc.data().role === "admin") {
+          this.#isAdmin = true;
         }
-      } catch (e) {
-        this.#isAdmin = false;
       }
-      console.log("New verification status:", this.#isVerified);
+    } catch (e) {
+      this.#isAdmin = false;
     }
   }
 }

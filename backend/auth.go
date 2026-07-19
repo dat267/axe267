@@ -137,8 +137,14 @@ func verifyAPIKey(apiKey, projectID, accessToken string) (*FirebaseUser, error) 
 			"limit": 1,
 		},
 	}
-	bodyBytes, _ := json.Marshal(query)
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+	bodyBytes, err := json.Marshal(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal query: %w", err)
+	}
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	if accessToken != "" {
 		req.Header.Set("Authorization", "Bearer "+accessToken)
@@ -166,9 +172,7 @@ func verifyAPIKey(apiKey, projectID, accessToken string) (*FirebaseUser, error) 
 
 func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key")
+		setCORSHeaders(w)
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return

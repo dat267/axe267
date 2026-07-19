@@ -29,3 +29,10 @@ dist-ssr
 *.sw?
 .firebase/
 tmp/
+
+# Go
+*.out
+*.test
+*.exe
+vendor/
+backend/axe-backend

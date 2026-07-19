@@ -16,6 +16,7 @@
     requestNotificationPermission,
     sendLocalNotification,
   } from "./lib/utils/notificationPermission.js";
+  import Icon from "./lib/components/Icon.svelte";
   import Home from "./pages/Home.svelte";
   import Lazy from "./lib/components/Lazy.svelte";
 
@@ -76,11 +77,6 @@
         await clearAllNotifications(token);
         showClearConfirm = false;
         clearTimeout(confirmTimer);
-        if (notifications.length === 0) {
-          isDeleting = false;
-        } else {
-          setTimeout(() => { isDeleting = false; }, 5000);
-        }
       }
     } catch (e) {
       console.error(e);
@@ -127,12 +123,6 @@
   });
 </script>
 
-{#snippet icon(svg, size = 18)}
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    {@html svg}
-  </svg>
-{/snippet}
-
 {#if authStore.loading}
   <div class="flex h-dvh w-full items-center justify-center overflow-hidden bg-background text-foreground">
     <div class="text-sm font-bold uppercase tracking-widest text-gray-500">loading...</div>
@@ -146,15 +136,15 @@
         <div class="flex items-center gap-2">
           {#if currentPath !== "/"}
             <Link to="/" class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Back">
-              {@render icon(ICONS.BACK, 20)}
+              <Icon svg={ICONS.BACK} size={20} />
             </Link>
           {:else}
             <div class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-gray-300 dark:text-gray-700 select-none cursor-not-allowed">
-              {@render icon(ICONS.BACK, 20)}
+              <Icon svg={ICONS.BACK} size={20} />
             </div>
           {/if}
           <Link to="/" class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Home">
-            {@render icon(ICONS.HOME, 20)}
+            <Icon svg={ICONS.HOME} size={20} />
           </Link>
         </div>
         <div class="flex items-center gap-2">
@@ -163,18 +153,18 @@
               {#if isDeleting}
                 <span class="text-sm font-bold font-mono">...</span>
               {:else if showClearConfirm} 
-                {@render icon(ICONS.CHECK, 20)}
+                <Icon svg={ICONS.CHECK} size={20} />
               {:else} 
-                {@render icon(ICONS.DELETE, 20)} 
+                <Icon svg={ICONS.DELETE} size={20} /> 
               {/if}
             </button>
           {/if}
           <button onclick={() => themeStore.toggleTheme()} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Theme">
-            {#if themeStore.darkMode} {@render icon(ICONS.SUN, 20)}
-            {:else} {@render icon(ICONS.MOON, 20)} {/if}
+            {#if themeStore.darkMode} <Icon svg={ICONS.SUN} size={20} />
+            {:else} <Icon svg={ICONS.MOON} size={20} /> {/if}
           </button>
           <button onclick={handleLogout} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-none select-none" aria-label="Sign out">
-            {@render icon(ICONS.SIGN_OUT, 20)}
+            <Icon svg={ICONS.SIGN_OUT} size={20} />
           </button>
         </div>
       </header>

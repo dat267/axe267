@@ -201,11 +201,9 @@ ${authHeader} \\
                 {/if}
               </div>
               <div class="p-4">
-                <textarea
-                  readonly
-                  class="h-24 w-full break-all outline-none bg-transparent text-xs font-mono text-foreground resize-none"
-                  value={token || "Click 'Generate Token' below to view your current Bearer token."}
-                ></textarea>
+                <pre
+                  class="h-24 w-full break-all overflow-y-auto bg-transparent text-xs font-mono text-foreground resize-none m-0"
+                >{token || "Click 'Generate Token' below to view your current Bearer token."}</pre>
               </div>
             </div>
             <div class="flex">
@@ -238,7 +236,8 @@ ${authHeader} \\
                   <input
                     readonly
                     value={keyState.generated}
-                    class="min-w-0 grow outline-none rounded-md border border-emerald-500/30 bg-background px-3 py-2 text-xs font-mono text-foreground"
+                    class="min-w-0 grow rounded-md border border-emerald-500/30 bg-background px-3 py-2 text-xs font-mono text-foreground"
+                    tabindex="-1"
                   />
                   <CopyButton 
                     text={keyState.generated} 

@@ -8,6 +8,8 @@
     "build:frontend": "npm run build --prefix frontend"
   },
   "devDependencies": {
-    "concurrently": "latest"
+    "concurrently": "^10.0.3",
+    "prettier": "^3.5.0",
+    "prettier-plugin-svelte": "^3.3.0"
   }
 }

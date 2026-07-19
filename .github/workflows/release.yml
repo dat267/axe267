@@ -51,8 +51,8 @@ jobs:
           name: backend-${{ matrix.goos }}-${{ matrix.goarch }}
           path: backend/axe-backend-${{ matrix.goos }}-${{ matrix.goarch }}*
 
-  frontend:
-    name: Frontend
+  frontend-dist:
+    name: Frontend dist
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -66,17 +66,48 @@ jobs:
           bun install --frozen-lockfile
           bun run build
 
-      - name: Package
+      - name: Package dist
         run: |
-          tar czf axe-frontend.tar.gz -C frontend/dist .
+          tar czf axe-frontend-dist.tar.gz -C frontend/dist .
 
       - uses: actions/upload-artifact@v7
         with:
-          name: frontend
-          path: axe-frontend.tar.gz
+          name: frontend-dist
+          path: axe-frontend-dist.tar.gz
+
+  frontend-bin:
+    name: Frontend (${{ matrix.target }})
+    needs: frontend-dist
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [bun-linux-x64, bun-linux-arm64, bun-darwin-x64, bun-darwin-arm64, bun-windows-x64]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/download-artifact@v8
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Compile binary
+        working-directory: frontend
+        run: |
+          SUFFIX=""
+          [[ "${{ matrix.target }}" == bun-windows-* ]] && SUFFIX=".exe"
+          OUT="axe-frontend-${{ matrix.target }}${SUFFIX}"
+          bun build --compile --target=${{ matrix.target }} --minify --sourcemap ./serve.js --outfile "$OUT"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: frontend-${{ matrix.target }}
+          path: frontend/axe-frontend-${{ matrix.target }}*
 
   release:
-    needs: [backend, frontend]
+    needs: [backend, frontend-bin]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8

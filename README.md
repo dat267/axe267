@@ -4,7 +4,7 @@ A professional, responsive notification dashboard and minimalist EPUB reader bui
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## Quick Start (Local Development)
 
 1.  **Clone & Install**
     ```bash
@@ -33,11 +33,11 @@ A professional, responsive notification dashboard and minimalist EPUB reader bui
 
 ---
 
-## 📖 Reader Architecture & Developer Guide
+## Reader Architecture & Developer Guide
 
 This section serves as your complete developer reference for the Svelte-based EPUB reader inside `src/pages/Reader.svelte`. Returning to this codebase months from now, this guide will instantly re-orient you on the design decisions, caching structures, layout optimizations, and state management systems in play.
 
-### 🗺️ High-Level System Architecture
+### High-Level System Architecture
 
 The following diagram illustrates how the Reader handles data loading, verification, cache synchronization, and viewport rendering.
 
@@ -73,7 +73,7 @@ graph TD
     R --> S[Render Page Content centered with max-w-3xl]
 ```
 
-### 🛠️ Technical Implementations & Design Decisions
+### Technical Implementations & Design Decisions
 
 #### 1. Zero-Bandwidth Binary Caching (Cache API)
 * **Goal:** Eliminate recurring Google Cloud Storage (GCS) bandwidth egress fees ($0.12/GB to the internet) and enable offline reading.
@@ -105,7 +105,7 @@ graph TD
 * **Lazy Routing:** App pages are code-split and loaded via a custom, Svelte 5-compliant reactive `<Lazy>` component.
 * **Browser Idle Prefetching:** Once the user mounts the Home page, the app leverages `requestIdleCallback` (with a safe `setTimeout` fallback) to quietly pre-fetch and cache the dynamic imports for `Reader.svelte`, `Settings.svelte`, `Integrations.svelte`, and `Notifications.svelte` in the background. Page transitions feel native and instantaneous.
 
-### 🗃️ State & LocalStorage Cheat Sheet
+### State & LocalStorage Cheat Sheet
 
 The application maintains the following keys in the client's `localStorage` for state management:
 
@@ -116,14 +116,14 @@ The application maintains the following keys in the client's `localStorage` for 
 | `axe_library_cache` | `JSON Object` `{ collections: [...], tracks: [...] }` | Stores the library catalog layout and file entries. Instantly loaded on Mount before background sync. |
 | `axe_locations_[title]` | `String` (EPUB.js locations map) | Caches pre-computed page coordinates for the specific book to bypass events loop rendering delays. |
 
-### 🧪 Maintenance Guidelines
+### Maintenance Guidelines
 * **Always run the development server during updates:** `npm run dev`.
 * **Remove comments & blank lines inside modified code blocks:** To keep snippets clean, concise, and aligned with personal preferences, ensure any new script updates are written without verbose commentary and minimal spacing.
 * **Zero Egress Mandate:** Never bypass the Cache API when fetching books. If you alter how files are fetched, ensure the signature-token validation (`url` query parameter) remains intact to prevent billing surprises on GCS.
 
 ---
 
-## 🌐 Production Deployment
+## Production Deployment
 
 This project uses **Firebase Hosting** for the frontend and **Google Cloud Run** for the Go backend.
 
@@ -149,7 +149,7 @@ The project includes a GitHub Action in `.github/workflows/deploy.yml` that auto
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Frontend:** Svelte 5 (Runes), JavaScript, Vite, Bun
 - **Backend:** Go (Cloud Run), Firestore
 - **Hosting:** Firebase Hosting
@@ -157,7 +157,7 @@ The project includes a GitHub Action in `.github/workflows/deploy.yml` that auto
 - **Testing:** Vitest
 - **CI/CD:** GitHub Actions
 
-## 📦 Releases
+## Releases
 
 Every push to `main` publishes a release under the `axe/<sha>` tag containing:
 

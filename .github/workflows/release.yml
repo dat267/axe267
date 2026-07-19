@@ -24,18 +24,15 @@ jobs:
         include:
           - { goos: linux, goarch: arm }
 
-    defaults:
-      run:
-        working-directory: backend
-
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-          cache: true
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Build
+        working-directory: backend
         env:
           GOOS:        ${{ matrix.goos }}
           GOARCH:      ${{ matrix.goarch }}

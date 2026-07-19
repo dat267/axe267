@@ -135,14 +135,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO:  ${{ github.repository }}
         run: |
-          PREFIX="${{ env.TAG_PREFIX }}/"
-          releases=$(gh release list --limit 100 --json tagName \
-            | jq -r '.[].tagName' | grep "^${PREFIX}")
+          all=$(gh release list --limit 100 --json tagName \
+            | jq -r '.[].tagName' | sort)
 
+          # Keep releases matching current prefix, delete the rest
           count=0
-          for tag in $releases; do
-            count=$((count + 1))
-            [ "$count" -le "${{ env.KEEP_RELEASES }}" ] && continue
+          for tag in $all; do
+            case "$tag" in
+              ${{ env.TAG_PREFIX }}/*)
+                count=$((count + 1))
+                [ "$count" -le "${{ env.KEEP_RELEASES }}" ] && continue
+                ;;
+            esac
             echo "Deleting: $tag"
             gh release delete "$tag" --yes --cleanup-tag || true
           done

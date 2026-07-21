@@ -5,7 +5,15 @@
   import { authStore } from "../lib/stores/authStore.svelte.js";
   import { themeStore } from "../lib/stores/themeStore.svelte.js";
   import { ICONS } from "../lib/utils/icons";
-  import { EPUB_CACHE_NAME, LOCATIONS_GENERATE_COUNT } from "../lib/utils/constants";
+  import {
+    EPUB_CACHE_NAME,
+    LOCATIONS_GENERATE_COUNT,
+    MAX_UPLOAD_SIZE_MB,
+    LS_READER_SESSION,
+    LS_READER_SETTINGS,
+    LS_LIBRARY_CACHE,
+    LS_LOCATIONS_PREFIX,
+  } from "../lib/utils/constants";
   import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
@@ -43,17 +51,26 @@
   let isUploading = $state(false);
   let newCollectionName = $state("");
   let showUploadModal = $state(false);
+  let uploadError = $state("");
 
   async function handleUpload(e) {
     e.preventDefault();
+    uploadError = "";
     if (!uploadFile) return;
     const col = uploadCollection === "new" ? newCollectionName.trim() : uploadCollection;
     if (!col) return;
+
+    const maxBytes = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+    if (uploadFile.size > maxBytes) {
+      uploadError = `File exceeds ${MAX_UPLOAD_SIZE_MB}MB limit`;
+      return;
+    }
+
     isUploading = true;
     try {
       const fileName = uploadFile.name;
       if (!fileName.toLowerCase().endsWith(".epub")) {
-        alert("Please select a valid EPUB file.");
+        uploadError = "Please select a valid EPUB file.";
         isUploading = false;
         return;
       }
@@ -68,8 +85,7 @@
       await loadLibrary();
       showUploadModal = false;
     } catch (err) {
-      console.error("Upload failed:", err);
-      alert("Upload failed: " + err.message);
+      uploadError = "Upload failed: " + err.message;
     } finally {
       isUploading = false;
     }
@@ -93,26 +109,31 @@
       }
       const rootRef = ref(storage, "books");
       const res = await listAll(rootRef);
-      const newCollections = [];
-      const newTracks = [];
-      const folderPromises = res.prefixes.map(async (folderRef) => {
+
+      const folderResults = await Promise.all(res.prefixes.map(async (folderRef) => {
         const folderRes = await listAll(folderRef);
         const epubs = folderRes.items.filter(i => i.name.toLowerCase().endsWith('.epub'));
-        if (epubs.length > 0) {
-          newCollections.push({ id: folderRef.name, name: folderRef.name });
-          for (const itemRef of epubs) {
-            newTracks.push({
-              id: itemRef.fullPath,
-              title: itemRef.name.replace(/\.[^/.]+$/, ""),
-              fileName: itemRef.name,
-              filePath: itemRef.fullPath,
-              url: "",
-              collectionId: folderRef.name
-            });
-          }
-        }
-      });
-      await Promise.all(folderPromises);
+        return {
+          collection: epubs.length > 0 ? { id: folderRef.name, name: folderRef.name } : null,
+          tracks: epubs.map(itemRef => ({
+            id: itemRef.fullPath,
+            title: itemRef.name.replace(/\.[^/.]+$/, ""),
+            fileName: itemRef.name,
+            filePath: itemRef.fullPath,
+            url: "",
+            collectionId: folderRef.name
+          })),
+        };
+      }));
+
+      const newCollections = [];
+      const newTracks = [];
+
+      for (const result of folderResults) {
+        if (result.collection) newCollections.push(result.collection);
+        newTracks.push(...result.tracks);
+      }
+
       const rootEpubs = res.items.filter(i => i.name.toLowerCase().endsWith('.epub'));
       if (rootEpubs.length > 0) {
         newCollections.push({ id: "Books", name: "Books" });
@@ -127,9 +148,10 @@
           });
         }
       }
+
       collections = newCollections;
       tracks = newTracks.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-      localStorage.setItem("axe_library_cache", JSON.stringify({ collections, tracks }));
+      localStorage.setItem(LS_LIBRARY_CACHE, JSON.stringify({ collections, tracks }));
     } catch (e) {
       console.error("Failed to list bucket:", e);
     } finally {
@@ -154,7 +176,7 @@
     rendition.themes.select("custom");
     rendition.themes.font(fontFamily);
     rendition.themes.fontSize(`${fontSize}px`);
-    localStorage.setItem("axe_reader_settings", JSON.stringify({ fontSize, fontFamily, lineHeight, flow }));
+    localStorage.setItem(LS_READER_SETTINGS, JSON.stringify({ fontSize, fontFamily, lineHeight, flow }));
   }
 
   $effect(() => { if (themeStore.darkMode !== undefined) applyTypography(); });
@@ -230,6 +252,7 @@
     if (!book || !rendition) return;
     const currentCfi = rendition.location?.start?.cfi;
     rendition.destroy();
+    rendition = null;
     rendition = book.renderTo(readerElement, {
       width: "100%",
       height: "100%",
@@ -266,7 +289,7 @@
     } catch (ue) {
       console.warn("Failed to get download URL:", ue);
     }
-    localStorage.setItem("axe_reader_session", JSON.stringify({ name: title, url, filePath }));
+    localStorage.setItem(LS_READER_SESSION, JSON.stringify({ name: title, url, filePath }));
     if (window.history.state?.reader !== true) window.history.pushState({ reader: true }, "");
     await tick();
     let bookData;
@@ -307,7 +330,16 @@
       } catch (offlineErr) {
         if (canCache) console.warn("Offline cache check failed:", offlineErr);
       }
-      if (!bookData) bookData = url;
+      if (!bookData && url) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) bookData = await response.blob();
+        } catch (fetchErr) {
+          bookData = url;
+        }
+      } else if (!bookData) {
+        bookData = url;
+      }
     }
     if (book) {
       book.destroy();
@@ -364,30 +396,34 @@
     book.loaded.metadata.then((m) => metadata = m);
     book.loaded.navigation.then((nav) => toc = flattenToc(nav.toc || []));
     
-    book.ready.then(() => {
+    generateLocations(title);
+
+    attachRenditionEvents(title);
+  }
+
+  async function generateLocations(title) {
+    try {
+      await book?.ready;
       if (!book) return;
-      const storageKey = `axe_locations_${title.replace(/[^a-z0-9]/gi, "_")}`;
+      const storageKey = `${LS_LOCATIONS_PREFIX}${title.replace(/[^a-z0-9]/gi, "_")}`;
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         book.locations.load(saved);
-        return book.locations;
       } else {
-        return book.locations.generate(LOCATIONS_GENERATE_COUNT).then(() => {
-          try {
-            if (book) localStorage.setItem(storageKey, book.locations.save());
-          } catch (le) {
-            console.warn("Save locations failed:", le);
-          }
-          return book?.locations;
-        });
+        await book.locations.generate(LOCATIONS_GENERATE_COUNT);
+        if (!book) return;
+        try {
+          localStorage.setItem(storageKey, book.locations.save());
+        } catch (le) {
+          console.warn("Save locations failed:", le);
+        }
       }
-    }).then(() => {
       if (!book) return;
       locations = book.locations;
       if (rendition?.location) progress = book.locations.percentageFromCfi(rendition.location.start.cfi);
-    });
-
-    attachRenditionEvents(title);
+    } catch (e) {
+      console.warn("Location generation failed:", e);
+    }
   }
 
   function next() { if (rendition) rendition.next(); }
@@ -395,7 +431,7 @@
   
   function closeReader(triggerHistory = true) {
     isReaderOpen = false;
-    localStorage.removeItem("axe_reader_session");
+    localStorage.removeItem(LS_READER_SESSION);
     if (triggerHistory && window.history.state?.reader === true) window.history.back();
     if (book) {
       book.destroy();
@@ -469,8 +505,13 @@
     console.error("All jump attempts failed for target:", target);
   }
 
+  let isDeleting = $state(false);
+  let deleteQueue = $state([]);
+
   async function deleteBook(bookItem) {
     if (!authStore.isAdmin || !confirm(`Permanently delete ${bookItem.title}?`)) return;
+    if (isDeleting) return;
+    isDeleting = true;
     try {
       await deleteObject(ref(storage, bookItem.filePath));
       const canCache = typeof window !== 'undefined' && 'caches' in window;
@@ -489,7 +530,7 @@
         console.warn("Cache delete failed:", ce);
       }
       try {
-        const storageKey = `axe_locations_${bookItem.title.replace(/[^a-z0-9]/gi, "_")}`;
+        const storageKey = `${LS_LOCATIONS_PREFIX}${bookItem.title.replace(/[^a-z0-9]/gi, "_")}`;
         localStorage.removeItem(storageKey);
       } catch (le) {
         console.warn("Failed to remove locations:", le);
@@ -498,11 +539,13 @@
       if (currentBookName === bookItem.title) closeReader();
     } catch (e) {
       console.error("Delete failed:", e);
+    } finally {
+      isDeleting = false;
     }
   }
 
   onMount(async () => {
-    const cachedLib = localStorage.getItem("axe_library_cache");
+    const cachedLib = localStorage.getItem(LS_LIBRARY_CACHE);
     if (cachedLib) {
       try {
         const parsed = JSON.parse(cachedLib);
@@ -519,7 +562,7 @@
       console.error("Failed to load Firebase storage module:", err);
     }
     loadLibrary();
-    const savedSettings = localStorage.getItem("axe_reader_settings");
+    const savedSettings = localStorage.getItem(LS_READER_SETTINGS);
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);
       fontSize = Math.min(96, Math.max(8, parsed.fontSize || 16));
@@ -615,6 +658,9 @@
             placeholder="Collection name..."
             required
           />
+        {/if}
+        {#if uploadError}
+          <div class="rounded-md bg-rose-500/10 px-4 py-3 text-xs font-medium text-rose-500">{uploadError}</div>
         {/if}
         <Button 
           type="submit" 

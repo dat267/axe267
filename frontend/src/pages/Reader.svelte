@@ -561,7 +561,15 @@
     } catch (err) {
       console.error("Failed to load Firebase storage module:", err);
     }
-    loadLibrary();
+    await loadLibrary();
+
+    const params = new URLSearchParams(window.location.search);
+    const bookPath = params.get("book");
+    if (bookPath) {
+      const decoded = decodeURIComponent(bookPath);
+      const match = tracks.find(t => t.filePath === decoded);
+      if (match) openBook(match.title, match.filePath);
+    }
     const savedSettings = localStorage.getItem(LS_READER_SETTINGS);
     if (savedSettings) {
       const parsed = JSON.parse(savedSettings);

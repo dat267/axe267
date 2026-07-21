@@ -290,7 +290,7 @@
       console.warn("Failed to get download URL:", ue);
     }
     localStorage.setItem(LS_READER_SESSION, JSON.stringify({ name: title, url, filePath }));
-    if (window.history.state?.reader !== true) window.history.pushState({ reader: true }, "");
+    history.replaceState({ reader: true, book: filePath }, "", `?book=${encodeURIComponent(filePath)}`);
     await tick();
     let bookData;
     const canCache = typeof window !== 'undefined' && 'caches' in window;
@@ -432,7 +432,12 @@
   function closeReader(triggerHistory = true) {
     isReaderOpen = false;
     localStorage.removeItem(LS_READER_SESSION);
-    if (triggerHistory && window.history.state?.reader === true) window.history.back();
+    if (triggerHistory && window.history.state?.reader === true) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete("book");
+      const qs = params.toString();
+      history.replaceState({}, "", qs ? `?${qs}` : "/reader");
+    }
     if (book) {
       book.destroy();
       book = null;
@@ -580,7 +585,8 @@
     }
     const handlePopState = () => {
       showUploadModal = window.location.search.includes("upload=1");
-      if (isReaderOpen && !window.history.state?.reader) closeReader(false);
+      const hasBook = window.location.search.includes("book=");
+      if (isReaderOpen && !hasBook) closeReader(false);
     };
     window.addEventListener("popstate", handlePopState);
     return () => { if (book) book.destroy(); window.removeEventListener("popstate", handlePopState); };

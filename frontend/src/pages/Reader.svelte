@@ -718,9 +718,10 @@
           {#if progress > 0} <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400/60 mt-0.5">{(progress * 100).toFixed(0)}% read</span> {/if}
         </div>
         <div class="flex items-center gap-2">
-          <button onclick={() => themeStore.toggleTheme()} class="icon-btn" aria-label="Theme">
-            {#if themeStore.darkMode} <Icon svg={ICONS.SUN} size={20} />
-            {:else} <Icon svg={ICONS.MOON} size={20} /> {/if}
+          <button onclick={() => themeStore.cycleTheme()} class="icon-btn" aria-label="Cycle theme">
+            {#if themeStore.mode === "dark"} <Icon svg={ICONS.MOON} size={20} />
+            {:else if themeStore.mode === "light"} <Icon svg={ICONS.SUN} size={20} />
+            {:else} <Icon svg={ICONS.MONITOR} size={20} /> {/if}
           </button>
           <button onclick={() => closeReader()} class="icon-btn danger" aria-label="Close reader">
             <Icon svg={ICONS.CLOSE} size={20} />

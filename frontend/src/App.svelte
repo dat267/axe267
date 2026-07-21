@@ -159,9 +159,10 @@
               {/if}
             </button>
           {/if}
-          <button onclick={() => themeStore.toggleTheme()} class="icon-btn" aria-label="Theme">
-            {#if themeStore.darkMode} <Icon svg={ICONS.SUN} size={20} />
-            {:else} <Icon svg={ICONS.MOON} size={20} /> {/if}
+          <button onclick={() => themeStore.cycleTheme()} class="icon-btn" aria-label="Cycle theme">
+            {#if themeStore.mode === "dark"} <Icon svg={ICONS.MOON} size={20} />
+            {:else if themeStore.mode === "light"} <Icon svg={ICONS.SUN} size={20} />
+            {:else} <Icon svg={ICONS.MONITOR} size={20} /> {/if}
           </button>
           <button onclick={handleLogout} class="icon-btn danger" aria-label="Sign out">
             <Icon svg={ICONS.SIGN_OUT} size={20} />

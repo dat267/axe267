@@ -600,12 +600,12 @@
     </div>
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
       {#if collections.length > 0}
-        <div class="flex gap-1 rounded-md border border-border bg-background p-1 overflow-x-auto max-w-full">
-          <button onclick={() => (selectedCollectionId = "all")} class="rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer whitespace-nowrap {selectedCollectionId === 'all' ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}">
+        <div class="chip-group overflow-x-auto max-w-full">
+          <button onclick={() => (selectedCollectionId = "all")} class="chip {selectedCollectionId === 'all' ? 'active' : 'inactive'} whitespace-nowrap">
             all
           </button>
           {#each collections as col}
-            <button onclick={() => (selectedCollectionId = col.id)} class="rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer whitespace-nowrap {selectedCollectionId === col.id ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}">
+            <button onclick={() => (selectedCollectionId = col.id)} class="chip {selectedCollectionId === col.id ? 'active' : 'inactive'} whitespace-nowrap">
               {col.name}
             </button>
           {/each}
@@ -698,7 +698,7 @@
           {#if authStore.isAdmin}
             <button 
               onclick={() => deleteBook(bookItem)} 
-              class="flex h-10 w-10 items-center justify-center rounded-md border border-transparent text-gray-400 hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/20 transition-none cursor-pointer shrink-0"
+              class="icon-btn muted shrink-0"
               aria-label="Delete book"
             >
               <Icon svg={ICONS.DELETE} size={18} />
@@ -718,11 +718,11 @@
           {#if progress > 0} <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400/60 mt-0.5">{(progress * 100).toFixed(0)}% read</span> {/if}
         </div>
         <div class="flex items-center gap-2">
-          <button onclick={() => themeStore.toggleTheme()} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Theme">
+          <button onclick={() => themeStore.toggleTheme()} class="icon-btn" aria-label="Theme">
             {#if themeStore.darkMode} <Icon svg={ICONS.SUN} size={20} />
             {:else} <Icon svg={ICONS.MOON} size={20} /> {/if}
           </button>
-          <button onclick={() => closeReader()} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-none select-none" aria-label="Close reader">
+          <button onclick={() => closeReader()} class="icon-btn danger" aria-label="Close reader">
             <Icon svg={ICONS.CLOSE} size={20} />
           </button>
         </div>
@@ -765,7 +765,7 @@
                     placeholder="Search..." 
                   />
                 </div>
-                <button onclick={performSearch} disabled={isSearching} class="h-10 w-10 flex items-center justify-center shrink-0 border border-border rounded-md bg-surface hover:bg-foreground hover:text-background hover:border-foreground text-foreground transition-none cursor-pointer">
+                <button onclick={performSearch} disabled={isSearching} class="icon-btn shrink-0">
                   {#if isSearching} <span class="text-[10px] font-bold opacity-70 tracking-widest">...</span>
                   {:else} <Icon svg={ICONS.SEARCH} size={14} /> {/if}
                 </button>
@@ -794,32 +794,32 @@
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">font size (px)</p>
                 <div class="flex items-center gap-2">
-                  <button onclick={() => { fontSize = Math.max(8, (Number(fontSize) || 16) - 1); applyTypography(); }} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none font-bold">-</button>
+                  <button onclick={() => { fontSize = Math.max(8, (Number(fontSize) || 16) - 1); applyTypography(); }} class="icon-btn font-bold">-</button>
                   <input type="number" min="8" max="96" bind:value={fontSize} onchange={applyTypography} onblur={applyTypography} class="flex-1 h-10 bg-background border border-border rounded-md text-center text-sm font-mono font-bold outline-none focus:border-foreground text-foreground" />
-                  <button onclick={() => { fontSize = Math.min(96, (Number(fontSize) || 16) + 1); applyTypography(); }} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none font-bold">+</button>
+                  <button onclick={() => { fontSize = Math.min(96, (Number(fontSize) || 16) + 1); applyTypography(); }} class="icon-btn font-bold">+</button>
                 </div>
               </div>
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">font family</p>
                 <div class="grid grid-cols-3 gap-2">
                   {#each FONT_OPTIONS as option}
-                    <button onclick={() => { fontFamily = option.value; applyTypography(); }} class="py-2 border border-border rounded-md text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer {fontFamily === option.value ? 'bg-foreground text-background border-foreground' : 'text-gray-500 hover:bg-foreground/5 hover:text-foreground bg-transparent'}">{option.label}</button>
+                    <button onclick={() => { fontFamily = option.value; applyTypography(); }} class="chip {fontFamily === option.value ? 'active' : 'inactive'} py-2">{option.label}</button>
                   {/each}
                 </div>
               </div>
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">line spacing</p>
                 <div class="flex items-center gap-2">
-                  <button onclick={() => { lineHeight = Math.max(1.0, parseFloat(((Number(lineHeight) || 1.5) - 0.1).toFixed(1))); applyTypography(); }} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none font-bold">-</button>
+                  <button onclick={() => { lineHeight = Math.max(1.0, parseFloat(((Number(lineHeight) || 1.5) - 0.1).toFixed(1))); applyTypography(); }} class="icon-btn font-bold">-</button>
                   <input type="number" min="1.0" max="3.0" step="0.1" bind:value={lineHeight} onchange={applyTypography} onblur={applyTypography} class="flex-1 h-10 bg-background border border-border rounded-md text-center text-sm font-mono font-bold outline-none focus:border-foreground text-foreground" />
-                  <button onclick={() => { lineHeight = Math.min(3.0, parseFloat(((Number(lineHeight) || 1.5) + 0.1).toFixed(1))); applyTypography(); }} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none font-bold">+</button>
+                  <button onclick={() => { lineHeight = Math.min(3.0, parseFloat(((Number(lineHeight) || 1.5) + 0.1).toFixed(1))); applyTypography(); }} class="icon-btn font-bold">+</button>
                 </div>
               </div>
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">layout</p>
                 <div class="grid grid-cols-2 gap-2">
-                  <button onclick={() => { flow = "paginated"; applyFlow(); }} class="py-2 border border-border rounded-md text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer {flow === 'paginated' ? 'bg-foreground text-background border-foreground' : 'text-gray-500 hover:bg-foreground/5 hover:text-foreground bg-transparent'}">pages</button>
-                  <button onclick={() => { flow = "scrolled"; applyFlow(); }} class="py-2 border border-border rounded-md text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer {flow === 'scrolled' ? 'bg-foreground text-background border-foreground' : 'text-gray-500 hover:bg-foreground/5 hover:text-foreground bg-transparent'}">scroll</button>
+                  <button onclick={() => { flow = "paginated"; applyFlow(); }} class="chip {flow === 'paginated' ? 'active' : 'inactive'} py-2">pages</button>
+                  <button onclick={() => { flow = "scrolled"; applyFlow(); }} class="chip {flow === 'scrolled' ? 'active' : 'inactive'} py-2">scroll</button>
                 </div>
               </div>
             </div>
@@ -831,21 +831,21 @@
       </div>
 
       <footer class="shrink-0 h-16 flex items-center justify-between border-t border-border bg-background p-4 md:px-8">
-        <button onclick={prev} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground transition-none cursor-pointer" aria-label="Prev">
+        <button onclick={prev} class="icon-btn" aria-label="Prev">
           <Icon svg={ICONS.PREV} size={20} />
         </button>
-        <div class="flex items-center gap-1 rounded-md border border-border bg-background p-1">
-          <button onclick={() => { showSettings = !showSettings; showGoTo = false; showToc = false; }} class="flex h-10 w-10 items-center justify-center rounded-sm transition-none cursor-pointer {showSettings ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}" aria-label="Typography settings">
+        <div class="icon-toggle-group">
+          <button onclick={() => { showSettings = !showSettings; showGoTo = false; showToc = false; }} class="icon-btn {showSettings ? 'icon-active' : 'icon-inactive'}" aria-label="Typography settings">
             <Icon svg={ICONS.TYPOGRAPHY} size={18} />
           </button>
-          <button onclick={() => { showGoTo = !showGoTo; showToc = false; showSettings = false; }} class="flex h-10 w-10 items-center justify-center rounded-sm transition-none cursor-pointer {showGoTo ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}" aria-label="Search book">
+          <button onclick={() => { showGoTo = !showGoTo; showToc = false; showSettings = false; }} class="icon-btn {showGoTo ? 'icon-active' : 'icon-inactive'}" aria-label="Search book">
             <Icon svg={ICONS.SEARCH} size={18} />
           </button>
-          <button onclick={() => { showToc = !showToc; showGoTo = false; showSettings = false; }} class="flex h-10 w-10 items-center justify-center rounded-sm transition-none cursor-pointer {showToc ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}" aria-label="Table of contents">
+          <button onclick={() => { showToc = !showToc; showGoTo = false; showSettings = false; }} class="icon-btn {showToc ? 'icon-active' : 'icon-inactive'}" aria-label="Table of contents">
             <Icon svg={ICONS.TOC} size={18} />
           </button>
         </div>
-        <button onclick={next} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground transition-none cursor-pointer" aria-label="Next">
+        <button onclick={next} class="icon-btn" aria-label="Next">
           <Icon svg={ICONS.NEXT} size={20} />
         </button>
       </footer>

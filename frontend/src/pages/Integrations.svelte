@@ -175,11 +175,11 @@ ${authHeader} \\
     <div class="rounded-md border border-border bg-surface p-8">
       <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-xs font-bold uppercase tracking-widest text-foreground">1. Authentication</h2>
-        <div class="flex w-full gap-1 rounded-md border border-border bg-background p-1 sm:w-auto">
+        <div class="chip-group sm:w-auto">
           {#each [{ id: "bearer", label: "Bearer Token" }, { id: "apikey", label: "API Key" }] as method}
             <button
               onclick={() => (keyState.method = method.id)}
-              class="flex-1 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer sm:flex-none {keyState.method === method.id ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}"
+              class="chip {keyState.method === method.id ? 'active' : 'inactive'} flex-1 sm:flex-none"
             >
               {method.label}
             </button>

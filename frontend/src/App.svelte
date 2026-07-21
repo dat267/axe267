@@ -135,7 +135,7 @@
       <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8">
         <div class="flex items-center gap-2">
           {#if currentPath !== "/"}
-            <Link to="/" class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Back">
+            <Link to="/" class="icon-btn" aria-label="Back">
               <Icon svg={ICONS.BACK} size={20} />
             </Link>
           {:else}
@@ -143,13 +143,13 @@
               <Icon svg={ICONS.BACK} size={20} />
             </div>
           {/if}
-          <Link to="/" class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Home">
+          <Link to="/" class="icon-btn" aria-label="Home">
             <Icon svg={ICONS.HOME} size={20} />
           </Link>
         </div>
         <div class="flex items-center gap-2">
           {#if currentPath === "/notifications"}
-            <button onclick={handleClearAll} disabled={notifications.length === 0 || isDeleting} class="flex h-10 w-10 items-center justify-center rounded-md border {showClearConfirm ? 'border-rose-500 bg-rose-500 text-white hover:bg-rose-600' : 'border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground'} disabled:opacity-40 cursor-pointer transition-none select-none">
+            <button onclick={handleClearAll} disabled={notifications.length === 0 || isDeleting} class="icon-btn {showClearConfirm ? '!border-rose-500 !bg-rose-500 !text-white hover:!bg-rose-600 hover:!border-rose-600' : ''}">
               {#if isDeleting}
                 <span class="text-sm font-bold font-mono">...</span>
               {:else if showClearConfirm} 
@@ -159,11 +159,11 @@
               {/if}
             </button>
           {/if}
-          <button onclick={() => themeStore.toggleTheme()} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none" aria-label="Theme">
+          <button onclick={() => themeStore.toggleTheme()} class="icon-btn" aria-label="Theme">
             {#if themeStore.darkMode} <Icon svg={ICONS.SUN} size={20} />
             {:else} <Icon svg={ICONS.MOON} size={20} /> {/if}
           </button>
-          <button onclick={handleLogout} class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500 cursor-pointer transition-none select-none" aria-label="Sign out">
+          <button onclick={handleLogout} class="icon-btn danger" aria-label="Sign out">
             <Icon svg={ICONS.SIGN_OUT} size={20} />
           </button>
         </div>

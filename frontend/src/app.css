@@ -1,12 +1,19 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-border: hsl(var(--border));
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-surface: hsl(var(--surface));
   --color-accent: hsl(var(--accent));
+
+  --text-label: 10px;
+  --text-label--line-height: 1;
+  --text-note: 9px;
+  --text-note--line-height: 1;
 }
+
 @layer base {
   :root {
     --background: 0 0% 98%;
@@ -40,25 +47,58 @@
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border) / 0.6) transparent;
   }
-
-  /* Reader specific global overrides */
-  .epub-container { 
-    height: 100% !important; 
-    width: 100% !important; 
+  .epub-container {
+    height: 100% !important;
+    width: 100% !important;
   }
-
-  /* Hide number input spin buttons */
   input[type="number"]::-webkit-outer-spin-button,
-  input[type="number"]::-webkit-inner-spin-button { 
-    -webkit-appearance: none; 
-    appearance: none; 
-    margin: 0; 
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
   }
-  input[type="number"] { 
-    -moz-appearance: textfield; 
-    appearance: textfield; 
+  input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
   }
 }
+
+@layer components {
+  .icon-btn {
+    @apply flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none;
+  }
+  .icon-btn.danger {
+    @apply text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500;
+  }
+  .icon-btn.muted {
+    @apply border-transparent text-gray-400 hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/20;
+  }
+  .icon-btn.icon-active {
+    @apply bg-foreground text-background border-foreground;
+  }
+  .icon-btn.icon-inactive {
+    @apply text-gray-500 hover:text-foreground bg-transparent;
+  }
+  .chip {
+    @apply rounded-sm px-3 py-1.5 text-label font-bold uppercase tracking-widest transition-none cursor-pointer;
+  }
+  .chip.active {
+    @apply bg-foreground text-background;
+  }
+  .chip.inactive {
+    @apply text-gray-500 hover:text-foreground bg-transparent;
+  }
+  .chip-group {
+    @apply flex gap-1 rounded-md border border-border bg-background p-1;
+  }
+  .icon-toggle-group {
+    @apply flex items-center gap-1 rounded-md border border-border bg-background p-1;
+  }
+  .icon-toggle-group .icon-btn {
+    @apply rounded-sm;
+  }
+}
+
 body {
   @apply bg-background text-foreground antialiased;
 }

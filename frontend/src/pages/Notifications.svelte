@@ -116,11 +116,11 @@
 <div>
   <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-2xl font-bold tracking-tight lowercase">notifications</h1>
-    <div class="flex w-full gap-1 rounded-md border border-border bg-background p-1 sm:w-auto">
+    <div class="chip-group sm:w-auto">
       {#each CATEGORY_LABELS as cat}
         <button
           onclick={() => (selectedCategory = cat.id)}
-          class="flex-1 rounded px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer sm:flex-none {selectedCategory === cat.id ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}"
+          class="chip {selectedCategory === cat.id ? 'active' : 'inactive'} flex-1 sm:flex-none"
         >
           {cat.label}
         </button>

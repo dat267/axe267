@@ -50,7 +50,7 @@
   let uploadCollection = $state("Books");
   let isUploading = $state(false);
   let newCollectionName = $state("");
-  let showUploadModal = $state(false);
+  let showUploadModal = $state(window.location.search.includes("upload=1"));
   let uploadError = $state("");
 
   async function handleUpload(e) {
@@ -83,7 +83,7 @@
       const fileInput = document.getElementById("epub-file");
       if (fileInput) fileInput.value = "";
       await loadLibrary();
-      showUploadModal = false;
+      history.back();
     } catch (err) {
       uploadError = "Upload failed: " + err.message;
     } finally {
@@ -570,8 +570,9 @@
       lineHeight = Math.min(3.0, Math.max(1.0, parsed.lineHeight || 1.5));
       flow = parsed.flow || "paginated";
     }
-    const handlePopState = (e) => {
-      if (isReaderOpen && !e.state?.reader) closeReader(false);
+    const handlePopState = () => {
+      showUploadModal = window.location.search.includes("upload=1");
+      if (isReaderOpen && !window.history.state?.reader) closeReader(false);
     };
     window.addEventListener("popstate", handlePopState);
     return () => { if (book) book.destroy(); window.removeEventListener("popstate", handlePopState); };
@@ -591,7 +592,7 @@
           {isLoading ? '...' : 'refresh'}
         </button>
         {#if authStore.isAdmin}
-          <button onclick={() => (showUploadModal = true)} class="text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 transition-none cursor-pointer">
+          <button onclick={() => { history.pushState(null, "", "?upload=1"); showUploadModal = true; }} class="text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 transition-none cursor-pointer">
             upload
           </button>
         {/if}
@@ -614,14 +615,14 @@
         {isLoading ? '...' : 'refresh'}
       </button>
       {#if authStore.isAdmin}
-        <button onclick={() => (showUploadModal = true)} class="hidden sm:inline-block text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 transition-none cursor-pointer">
+        <button onclick={() => { history.pushState(null, "", "?upload=1"); showUploadModal = true; }} class="hidden sm:inline-block text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 transition-none cursor-pointer">
           upload
         </button>
       {/if}
     </div>
   </div>
   {#if authStore.isAdmin}
-    <Modal show={showUploadModal} title="upload epub book" onClose={() => (showUploadModal = false)} showFooter={false}>
+    <Modal show={showUploadModal} title="upload epub book" onClose={() => history.back()} showFooter={false}>
       <form onsubmit={handleUpload} class="flex flex-col gap-6">
         <div>
           <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1" for="epub-file">select file</label>

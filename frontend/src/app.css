@@ -65,7 +65,7 @@
 
 @layer components {
   .icon-btn {
-    @apply flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none;
+    @apply flex h-10 w-10 items-center justify-center rounded-md border border-border bg-surface text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none disabled:opacity-40;
   }
   .icon-btn.danger {
     @apply text-rose-500 hover:bg-rose-500 hover:text-white hover:border-rose-500;

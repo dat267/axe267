@@ -32,7 +32,7 @@
   let isReaderOpen = $state(false);
   let isBookLoading = $state(false);
   let metadata = $state(null);
-  let locations = $state(null);
+  let _locations = $state(null);
   let progress = $state(0);
   let saveTimeout;
 
@@ -195,7 +195,7 @@
           // Look up in spine to get a CFI if possible
           const section = book.spine.get(canonical.replace(/^\//, ""));
           target = section?.cfi || canonical || item.href;
-        } catch (e) {
+        } catch (_e) {
           target = item.href;
         }
       }
@@ -290,7 +290,9 @@
       console.warn("Failed to get download URL:", ue);
     }
     localStorage.setItem(LS_READER_SESSION, JSON.stringify({ name: title, url, filePath }));
-    history.replaceState({ reader: true, book: filePath }, "", `?book=${encodeURIComponent(filePath)}`);
+    if (!window.location.search.includes("book=")) {
+      history.pushState({ reader: true, book: filePath }, "", `?book=${encodeURIComponent(filePath)}`);
+    }
     await tick();
     let bookData;
     const canCache = typeof window !== 'undefined' && 'caches' in window;
@@ -318,7 +320,7 @@
     } catch (e) {
       if (canCache) console.warn("Cache error, falling back:", e);
       try {
-        if (!canCache) throw new Error("Cache API not available");
+        if (!canCache) throw new Error("Cache API not available", { cause: e });
         const prefix = `https://axe-local/${encodeURIComponent(filePath)}`;
         const cache = await caches.open(EPUB_CACHE_NAME);
         const keys = await cache.keys();
@@ -334,7 +336,7 @@
         try {
           const response = await fetch(url);
           if (response.ok) bookData = await response.blob();
-        } catch (fetchErr) {
+        } catch (_fetchErr) {
           bookData = url;
         }
       } else if (!bookData) {
@@ -419,7 +421,7 @@
         }
       }
       if (!book) return;
-      locations = book.locations;
+      _locations = book.locations;
       if (rendition?.location) progress = book.locations.percentageFromCfi(rendition.location.start.cfi);
     } catch (e) {
       console.warn("Location generation failed:", e);
@@ -432,11 +434,8 @@
   function closeReader(triggerHistory = true) {
     isReaderOpen = false;
     localStorage.removeItem(LS_READER_SESSION);
-    if (triggerHistory && window.history.state?.reader === true) {
-      const params = new URLSearchParams(window.location.search);
-      params.delete("book");
-      const qs = params.toString();
-      history.replaceState({}, "", qs ? `?${qs}` : "/reader");
+    if (triggerHistory && window.location.search.includes("book=")) {
+      history.back();
     }
     if (book) {
       book.destroy();
@@ -450,7 +449,7 @@
     isSearching = true; hasSearched = true; searchResults = [];
     try {
       const results = await Promise.all(book.spine.spineItems.map((item) => {
-        return item.load(book.load.bind(book)).then(async (doc) => {
+        return item.load(book.load.bind(book)).then(async (_doc) => {
           const res = await item.find(gotoSearch);
           item.unload();
           return res;
@@ -474,7 +473,7 @@
         showGoTo = false;
         showSettings = false;
         return true;
-      } catch (err) {
+      } catch (_err) {
         return false;
       }
     };
@@ -511,7 +510,7 @@
   }
 
   let isDeleting = $state(false);
-  let deleteQueue = $state([]);
+  let _deleteQueue = $state([]);
 
   async function deleteBook(bookItem) {
     if (!authStore.isAdmin || !confirm(`Permanently delete ${bookItem.title}?`)) return;
@@ -743,7 +742,7 @@
         </div>
       </header>
       <div class="relative flex-1 flex min-h-0 overflow-hidden">
-        <div bind:this={readerElement} class="flex-1 h-full mx-auto w-full overflow-hidden {flow === 'scrolled' ? 'max-w-3xl' : 'max-w-none'}"></div>
+        <div bind:this={readerElement} class="flex-1 h-full mx-auto w-full overflow-hidden {flow === 'paginated' ? 'py-4 md:py-12' : ''} {flow === 'scrolled' ? 'max-w-3xl' : 'max-w-none'}"></div>
         {#if isBookLoading} <div class="absolute inset-0 flex items-center justify-center bg-background/50 z-20"><span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">loading book...</span></div> {/if}
         
         {#if showToc}

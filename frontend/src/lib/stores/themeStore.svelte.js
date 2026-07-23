@@ -54,9 +54,7 @@ class ThemeStore {
     if (typeof document !== "undefined") {
       const root = document.documentElement;
       root.classList.toggle("dark", this.darkMode);
-      root.style.backgroundColor = this.darkMode
-        ? "hsl(220 10% 10%)"
-        : "hsl(0 0% 98%)";
+      root.style.backgroundColor = this.darkMode ? "hsl(220 10% 10%)" : "hsl(0 0% 98%)";
     }
   }
 }

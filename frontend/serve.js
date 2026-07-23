@@ -4,13 +4,13 @@ const dist = `${import.meta.dir}/dist`;
 
 const MIME = {
   ".html": "text/html",
-  ".js":   "text/javascript",
-  ".css":  "text/css",
-  ".svg":  "image/svg+xml",
-  ".png":  "image/png",
-  ".ico":  "image/x-icon",
+  ".js": "text/javascript",
+  ".css": "text/css",
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/x-icon",
   ".json": "application/json",
-  ".map":  "application/json",
+  ".map": "application/json",
 };
 
 serve({

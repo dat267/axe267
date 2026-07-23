@@ -1,6 +1,5 @@
 import {
   collection,
-  addDoc,
   query,
   where,
   orderBy,
@@ -8,22 +7,18 @@ import {
   deleteDoc,
   doc,
   limit,
-  serverTimestamp,
-  getCountFromServer
-  } from "firebase/firestore";
-  import { db } from "./firebase";
+  getCountFromServer,
+} from "firebase/firestore";
+import { db } from "./firebase";
 
-  const NOTIFICATIONS_COLLECTION = "notifications";
+const NOTIFICATIONS_COLLECTION = "notifications";
 
 /**
  * Gets the total count of notifications for a specific user.
  */
 export async function getNotificationsCount(userEmail) {
   try {
-    const q = query(
-      collection(db, NOTIFICATIONS_COLLECTION),
-      where("userEmail", "==", userEmail)
-    );
+    const q = query(collection(db, NOTIFICATIONS_COLLECTION), where("userEmail", "==", userEmail));
     const snapshot = await getCountFromServer(q);
     return snapshot.data().count;
   } catch (error) {
@@ -35,27 +30,27 @@ export async function getNotificationsCount(userEmail) {
 /**
  * Subscribes to notifications for a specific user.
  */
-export function subscribeNotifications(
-  userEmail, 
-  callback,
-  limitCount = 20
-) {
+export function subscribeNotifications(userEmail, callback, limitCount = 20) {
   const q = query(
     collection(db, NOTIFICATIONS_COLLECTION),
     where("userEmail", "==", userEmail),
     orderBy("createdAt", "desc"),
-    limit(limitCount)
+    limit(limitCount),
   );
 
-  return onSnapshot(q, (snapshot) => {
-    const notifications = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    callback(notifications);
-  }, (error) => {
-    console.error("Subscription error:", error);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const notifications = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(notifications);
+    },
+    (error) => {
+      console.error("Subscription error:", error);
+    },
+  );
 }
 
 /**
@@ -76,8 +71,8 @@ export async function clearAllNotifications(idToken) {
     const response = await fetch(apiUrl, {
       method: "DELETE",
       headers: {
-        "Authorization": `Bearer ${idToken}`
-      }
+        Authorization: `Bearer ${idToken}`,
+      },
     });
     if (!response.ok) {
       const text = await response.text();

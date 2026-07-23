@@ -24,9 +24,9 @@ export function sendLocalNotification(title, options) {
   if (Notification.permission === "granted") {
     const { onClick, ...notificationOptions } = options || {};
     const notification = new Notification(title, {
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
-      ...notificationOptions
+      icon: "/favicon.svg",
+      badge: "/favicon.svg",
+      ...notificationOptions,
     });
 
     notification.onclick = () => {

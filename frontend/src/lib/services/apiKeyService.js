@@ -1,20 +1,11 @@
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  onSnapshot,
-  deleteDoc,
-  doc,
-  serverTimestamp
-} from "firebase/firestore";
+import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
 const KEYS_COLLECTION = "api_keys";
 
 export function generateRandomKey(length = 32) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = 'ntfy_';
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "ntfy_";
   const randomValues = new Uint32Array(length);
   window.crypto.getRandomValues(randomValues);
   for (let i = 0; i < length; i++) {
@@ -31,7 +22,7 @@ export async function createApiKey(userId, userEmail, name) {
       userId,
       userEmail,
       name,
-      createdAt: serverTimestamp()
+      createdAt: serverTimestamp(),
     });
     return { id: docRef.id, key };
   } catch (error) {
@@ -42,20 +33,21 @@ export async function createApiKey(userId, userEmail, name) {
 }
 
 export function subscribeApiKeys(userId, callback) {
-  const q = query(
-    collection(db, KEYS_COLLECTION),
-    where("userId", "==", userId)
-  );
+  const q = query(collection(db, KEYS_COLLECTION), where("userId", "==", userId));
 
-  return onSnapshot(q, (snapshot) => {
-    const keys = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    callback(keys);
-  }, (error) => {
-    console.error("API Key subscription error:", error);
-  });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const keys = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      callback(keys);
+    },
+    (error) => {
+      console.error("API Key subscription error:", error);
+    },
+  );
 }
 
 export async function deleteApiKey(id) {

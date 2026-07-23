@@ -20,7 +20,7 @@ class AuthStore {
               this.#isAdmin = true;
             }
           }
-        } catch (e) {
+        } catch (_e) {
           this.#isAdmin = false;
         }
       } else {
@@ -29,12 +29,24 @@ class AuthStore {
       this.#loading = false;
     });
   }
-  get user() { return this.#user; }
-  set user(value) { this.#user = value; }
-  get loading() { return this.#loading; }
-  get isVerified() { return this.#isVerified; }
-  set isVerified(value) { this.#isVerified = value; }
-  get isAdmin() { return this.#isAdmin; }
+  get user() {
+    return this.#user;
+  }
+  set user(value) {
+    this.#user = value;
+  }
+  get loading() {
+    return this.#loading;
+  }
+  get isVerified() {
+    return this.#isVerified;
+  }
+  set isVerified(value) {
+    this.#isVerified = value;
+  }
+  get isAdmin() {
+    return this.#isAdmin;
+  }
   async refreshStatus() {
     const user = auth.currentUser;
     if (!user) return;
@@ -62,7 +74,7 @@ class AuthStore {
           this.#isAdmin = true;
         }
       }
-    } catch (e) {
+    } catch (_e) {
       this.#isAdmin = false;
     }
   }

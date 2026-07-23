@@ -4,7 +4,7 @@
     import { CATEGORY_LABELS, TYPE_COLORS } from "../lib/utils/constants";
 
     let {
-        title = "Notifications",
+        _title = "Notifications",
         notifications = [],
         totalCount = 0,
         limit = 20,
@@ -28,7 +28,7 @@
             return matchesCategory && matchesSearch;
         })
     );
-    let unreadCount = $derived(filteredNotifications.length);
+    let _unreadCount = $derived(filteredNotifications.length);
 
     function handleClose() {
         showModal = false;

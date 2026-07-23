@@ -33,7 +33,7 @@
     <h1 class="text-2xl font-bold tracking-tight lowercase">axe</h1>
   </div>
   <div class="border-t border-border">
-    {#each APPS as app}
+    {#each APPS as app (app.to)}
       <Link
         to={app.to}
         class="group flex h-20 w-full items-center gap-4 border-b border-border px-1 hover:bg-foreground/5 transition-none"

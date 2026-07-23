@@ -159,7 +159,7 @@ ${authHeader} \\
       bind:value={form[id]}
       class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground disabled:opacity-30 rounded-none cursor-pointer text-foreground"
     >
-      {#each options as opt}
+      {#each options as opt (opt)}
         <option value={opt} class="bg-background text-foreground">{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
       {/each}
     </select>
@@ -176,7 +176,7 @@ ${authHeader} \\
       <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-xs font-bold uppercase tracking-widest text-foreground">1. Authentication</h2>
         <div class="chip-group sm:w-auto">
-          {#each [{ id: "bearer", label: "Bearer Token" }, { id: "apikey", label: "API Key" }] as method}
+          {#each [{ id: "bearer", label: "Bearer Token" }, { id: "apikey", label: "API Key" }] as method (method.id)}
             <button
               onclick={() => (keyState.method = method.id)}
               class="chip {keyState.method === method.id ? 'active' : 'inactive'} flex-1 sm:flex-none"
@@ -264,7 +264,7 @@ ${authHeader} \\
                   Active Keys
                 </div>
                 <div class="divide-y divide-border rounded-md border border-border bg-background">
-                  {#each keyState.list as key}
+                  {#each keyState.list as key (key.id || key.key || key.name)}
                     <div class="flex items-center justify-between gap-4 p-4">
                       <div class="flex min-w-0 flex-col">
                         <span class="truncate text-xs font-bold uppercase tracking-wider text-foreground">

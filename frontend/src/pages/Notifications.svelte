@@ -117,7 +117,7 @@
   <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
     <h1 class="text-2xl font-bold tracking-tight lowercase">notifications</h1>
     <div class="chip-group sm:w-auto">
-      {#each CATEGORY_LABELS as cat}
+      {#each CATEGORY_LABELS as cat (cat.id)}
         <button
           onclick={() => (selectedCategory = cat.id)}
           class="chip {selectedCategory === cat.id ? 'active' : 'inactive'} flex-1 sm:flex-none"

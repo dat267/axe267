@@ -620,7 +620,7 @@
           <button onclick={() => (selectedCollectionId = "all")} class="chip {selectedCollectionId === 'all' ? 'active' : 'inactive'} whitespace-nowrap">
             all
           </button>
-          {#each collections as col}
+          {#each collections as col (col.id)}
             <button onclick={() => (selectedCollectionId = col.id)} class="chip {selectedCollectionId === col.id ? 'active' : 'inactive'} whitespace-nowrap">
               {col.name}
             </button>
@@ -659,7 +659,7 @@
             class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground text-foreground cursor-pointer"
           >
             <option value="Books" class="bg-background">Books (Root)</option>
-            {#each collections as col}
+            {#each collections as col (col.id)}
               {#if col.id !== 'Books'}
                 <option value={col.id} class="bg-background">{col.name}</option>
               {/if}
@@ -696,7 +696,7 @@
     {:else if filteredTracks.length === 0}
       <div class="py-20 text-center"><span class="text-sm font-bold uppercase tracking-widest text-gray-500/50">no books found</span></div>
     {:else}
-      {#each filteredTracks as bookItem}
+      {#each filteredTracks as bookItem (bookItem.filePath)}
         <div class="group flex h-20 w-full items-center gap-4 border-b border-border px-1 transition-none hover:bg-foreground/5">
           <button 
             onclick={() => openBook(bookItem.title, bookItem.filePath)} 
@@ -755,7 +755,7 @@
               <button onclick={() => showToc = false} class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer">back</button>
             </div>
             <div class="flex-1 overflow-y-auto space-y-2">
-              {#each toc as item} 
+              {#each toc as item (item.target || item.label)} 
                 <button onclick={() => jumpTo(item.target)} style="padding-left: {item.level * 16 + 12}px;" class="w-full text-left text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-foreground hover:bg-foreground/5 rounded-md pr-3 py-2.5 transition-none cursor-pointer border-b border-border/30">
                   {item.label}
                 </button>
@@ -788,7 +788,7 @@
                 </button>
               </div>
               <div class="flex-1 overflow-y-auto space-y-3 pr-3">
-                {#each searchResults as res} 
+                {#each searchResults as res (res.cfi)} 
                   <button onclick={() => jumpTo(res.cfi)} class="w-full text-left text-[11px] p-4 border border-border rounded-md hover:bg-foreground/5 transition-none cursor-pointer">
                     <p class="text-gray-500 italic">"...{res.excerpt}..."</p>
                   </button> 
@@ -819,7 +819,7 @@
               <div>
                 <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">font family</p>
                 <div class="grid grid-cols-3 gap-2">
-                  {#each FONT_OPTIONS as option}
+                  {#each FONT_OPTIONS as option (option.value)}
                     <button onclick={() => { fontFamily = option.value; applyTypography(); }} class="chip {fontFamily === option.value ? 'active' : 'inactive'} py-2">{option.label}</button>
                   {/each}
                 </div>

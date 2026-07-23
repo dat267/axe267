@@ -82,7 +82,7 @@ done`);
   <div class="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
     <h2 class="text-xs font-bold uppercase tracking-widest text-foreground">4. Notification Mirroring</h2>
     <div class="flex w-full gap-1 rounded-md border border-border bg-background p-1 sm:w-auto">
-      {#each ["bash", "powershell", "android"] as scriptMode}
+      {#each ["bash", "powershell", "android"] as scriptMode (scriptMode)}
         <button
           onclick={() => (automationTab = scriptMode)}
           class="flex-1 rounded-sm px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer sm:flex-none {automationTab === scriptMode ? 'bg-foreground text-background' : 'text-gray-500 hover:text-foreground bg-transparent'}"

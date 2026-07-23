@@ -80,7 +80,7 @@
       uploadFile = null;
       newCollectionName = "";
       uploadCollection = "Books";
-      const fileInput = document.getElementById("epub-file");
+      const fileInput = /** @type {HTMLInputElement | null} */ (document.getElementById("epub-file"));
       if (fileInput) fileInput.value = "";
       await loadLibrary();
       history.back();
@@ -349,7 +349,7 @@
       rendition = null;
     }
 
-    book = ePub(bookData);
+    book = ePub(/** @type {any} */ (bookData));
     
     try {
       await book.opened;
@@ -548,40 +548,43 @@
     }
   }
 
-  onMount(async () => {
-    const cachedLib = localStorage.getItem(LS_LIBRARY_CACHE);
-    if (cachedLib) {
-      try {
-        const parsed = JSON.parse(cachedLib);
-        collections = parsed.collections || [];
-        tracks = parsed.tracks || [];
-        isLoading = false;
-      } catch (ce) {
-        console.warn("Failed to parse library cache:", ce);
+  onMount(() => {
+    (async () => {
+      const cachedLib = localStorage.getItem(LS_LIBRARY_CACHE);
+      if (cachedLib) {
+        try {
+          const parsed = JSON.parse(cachedLib);
+          collections = parsed.collections || [];
+          tracks = parsed.tracks || [];
+          isLoading = false;
+        } catch (ce) {
+          console.warn("Failed to parse library cache:", ce);
+        }
       }
-    }
-    try {
-      storage = await getStorageInstance();
-    } catch (err) {
-      console.error("Failed to load Firebase storage module:", err);
-    }
-    await loadLibrary();
+      try {
+        storage = await getStorageInstance();
+      } catch (err) {
+        console.error("Failed to load Firebase storage module:", err);
+      }
+      await loadLibrary();
 
-    const params = new URLSearchParams(window.location.search);
-    const bookPath = params.get("book");
-    if (bookPath) {
-      const decoded = decodeURIComponent(bookPath);
-      const match = tracks.find(t => t.filePath === decoded);
-      if (match) openBook(match.title, match.filePath);
-    }
-    const savedSettings = localStorage.getItem(LS_READER_SETTINGS);
-    if (savedSettings) {
-      const parsed = JSON.parse(savedSettings);
-      fontSize = Math.min(96, Math.max(8, parsed.fontSize || 16));
-      fontFamily = parsed.fontFamily || FONT_OPTIONS[0].value;
-      lineHeight = Math.min(3.0, Math.max(1.0, parsed.lineHeight || 1.5));
-      flow = parsed.flow || "paginated";
-    }
+      const params = new URLSearchParams(window.location.search);
+      const bookPath = params.get("book");
+      if (bookPath) {
+        const decoded = decodeURIComponent(bookPath);
+        const match = tracks.find(t => t.filePath === decoded);
+        if (match) openBook(match.title, match.filePath);
+      }
+      const savedSettings = localStorage.getItem(LS_READER_SETTINGS);
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        fontSize = Math.min(96, Math.max(8, parsed.fontSize || 16));
+        fontFamily = parsed.fontFamily || FONT_OPTIONS[0].value;
+        lineHeight = Math.min(3.0, Math.max(1.0, parsed.lineHeight || 1.5));
+        flow = parsed.flow || "paginated";
+      }
+    })();
+
     const handlePopState = () => {
       showUploadModal = window.location.search.includes("upload=1");
       const hasBook = window.location.search.includes("book=");
@@ -643,7 +646,7 @@
             type="file" 
             id="epub-file" 
             accept=".epub" 
-            onchange={(e) => { const files = e.target.files; if (files && files.length > 0) uploadFile = files[0]; }} 
+            onchange={(e) => { const input = /** @type {HTMLInputElement} */ (e.target); const files = input?.files; if (files && files.length > 0) uploadFile = files[0]; }} 
             class="block w-full border-b border-border bg-transparent py-3 text-sm outline-none focus:border-foreground text-foreground cursor-pointer" 
             required 
           />

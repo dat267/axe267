@@ -1,7 +1,7 @@
 <script>
   let { 
     text, 
-    onCopy, 
+    onCopy = undefined, 
     className = "",
     label = ""
   } = $props();

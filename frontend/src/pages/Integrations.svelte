@@ -368,7 +368,7 @@ ${authHeader} \\
     <IntegrationScripts
       {apiUrl}
       {authHeader}
-      {authHeaderName}
+      _authHeaderName={authHeaderName}
       {authHeaderValue}
     />
   </section>

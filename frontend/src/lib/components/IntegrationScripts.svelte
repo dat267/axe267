@@ -1,7 +1,7 @@
 <script>
   import CodeBlock from "./CodeBlock.svelte";
 
-  let { apiUrl, authHeader, _authHeaderName, authHeaderValue } = $props();
+  let { apiUrl, authHeader, _authHeaderName = "", authHeaderValue } = $props();
 
   let automationTab = $state("bash");
 

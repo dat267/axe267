@@ -7,7 +7,7 @@
     placeholder = "", 
     required = false, 
     disabled = false,
-    labelRight,
+    labelRight = undefined,
     ...rest
   } = $props();
 </script>

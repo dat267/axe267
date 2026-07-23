@@ -1,11 +1,12 @@
 <script>
+  /** @type {{ type?: "button" | "reset" | "submit", variant?: string, loading?: boolean, disabled?: boolean, className?: string, onclick?: (e: MouseEvent) => void, children?: any }} */
   let { 
     type = "button", 
     variant = "primary", 
     loading = false, 
     disabled = false, 
     className = "",
-    onclick,
+    onclick = undefined,
     children
   } = $props();
 

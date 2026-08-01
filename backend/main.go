@@ -2,31 +2,34 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
 )
 
 func main() {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
+
 	loadEnv()
 	ctx := context.Background()
 
 	app, err := initApp(ctx)
 	if err != nil {
-		fmt.Printf("Failed to initialize Firebase: %v\n", err)
+		logger.Error("failed to initialize Firebase", "error", err)
 		os.Exit(1)
 	}
 
 	authClient, err := app.Auth(ctx)
 	if err != nil {
-		fmt.Printf("Failed to initialize auth client: %v\n", err)
+		logger.Error("failed to initialize auth client", "error", err)
 		os.Exit(1)
 	}
 
 	firestoreClient, err := app.Firestore(ctx)
 	if err != nil {
-		fmt.Printf("Failed to initialize Firestore client: %v\n", err)
+		logger.Error("failed to initialize Firestore client", "error", err)
 		os.Exit(1)
 	}
 	defer firestoreClient.Close()
@@ -53,8 +56,8 @@ func main() {
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
-	fmt.Printf("Starting server on port %s...\n", port)
+	logger.Info("starting server", "port", port)
 	if err := server.ListenAndServe(); err != nil {
-		fmt.Printf("Server failed: %v\n", err)
+		logger.Error("server failed", "error", err)
 	}
 }

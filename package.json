@@ -6,6 +6,9 @@
     "dev:backend": "cd backend && PORT=8080 go run github.com/air-verse/air@latest",
     "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
     "build:frontend": "npm run build --prefix frontend",
+    "test:frontend": "npm run test --prefix frontend",
+    "test:backend": "cd backend && go test ./...",
+    "test": "npm run test:frontend && npm run test:backend",
     "lint:frontend": "npm run lint --prefix frontend",
     "lint": "npm run lint:frontend"
   },

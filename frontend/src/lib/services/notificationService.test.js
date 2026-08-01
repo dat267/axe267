@@ -24,9 +24,7 @@ describe("clearAllNotifications", () => {
   });
 
   it("sends a DELETE with the bearer token and returns the count", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ count: 3 }), { status: 200 }),
-    );
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ count: 3 }), { status: 200 }));
     const result = await clearAllNotifications("token123");
     expect(globalThis.fetch).toHaveBeenCalledWith("/api/notify", {
       method: "DELETE",
@@ -36,9 +34,7 @@ describe("clearAllNotifications", () => {
   });
 
   it("throws when the API returns an error", async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response("boom", { status: 500 }),
-    );
+    globalThis.fetch = vi.fn(async () => new Response("boom", { status: 500 }));
     await expect(clearAllNotifications("token123")).rejects.toThrow(/boom/);
   });
 

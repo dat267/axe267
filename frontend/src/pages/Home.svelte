@@ -1,5 +1,5 @@
 <script>
-  import { Link } from "svelte-routing";
+  import { Link } from "svelte5-router";
   import { ICONS } from "../lib/utils/icons";
   import { authStore } from "../lib/stores/authStore.svelte.js";
 

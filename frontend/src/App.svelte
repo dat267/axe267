@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { Router, Route, Link, navigate } from "svelte-routing";
+  import { Router, Route, Link, navigate } from "svelte5-router";
   import { signOut } from "firebase/auth";
   import { auth } from "./lib/services/firebase";
   import { authStore } from "./lib/stores/authStore.svelte.js";

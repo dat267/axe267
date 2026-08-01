@@ -1,5 +1,5 @@
 <script>
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
 
   let {
     show = false,
@@ -10,15 +10,50 @@
     children,
   } = $props();
 
+  let dialogEl = $state();
+  let lastFocused;
+
+  function getFocusable() {
+    if (!dialogEl) return [];
+    return Array.from(
+      dialogEl.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+  }
+
   function handleKeydown(e) {
-    if (e.key === "Escape" && show) onClose();
+    if (!show) return;
+    if (e.key === "Escape") {
+      onClose();
+      return;
+    }
+    if (e.key !== "Tab") return;
+    const focusable = getFocusable();
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 
   $effect(() => {
     if (show) {
       document.body.style.overflow = "hidden";
+      lastFocused = document.activeElement;
+      tick().then(() => {
+        const focusable = getFocusable();
+        (focusable[0] || dialogEl)?.focus();
+      });
     } else {
       document.body.style.overflow = "";
+      lastFocused?.focus?.();
+      lastFocused = null;
     }
   });
 
@@ -36,11 +71,15 @@
 
 {#if show}
   <div class="fixed inset-0 z-100 flex items-center justify-center p-4">
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="absolute inset-0 bg-black/40" onclick={onClose}></div>
+    <div class="absolute inset-0 bg-black/40" onclick={onClose} aria-hidden="true"></div>
 
-    <div class="relative w-full max-w-lg overflow-hidden rounded-md border border-border bg-surface p-6">
+    <div
+      bind:this={dialogEl}
+      class="relative w-full max-w-lg overflow-hidden rounded-md border border-border bg-surface p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title || "Dialog"}
+    >
       <div class="mb-4 flex items-center justify-between">
         <h3 class="text-sm font-bold uppercase tracking-wider text-foreground">{title}</h3>
         {#if showCloseButton}

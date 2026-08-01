@@ -2,6 +2,8 @@ export const EPUB_CACHE_NAME = "axe-epub-cache-v1";
 
 export const LOCATIONS_GENERATE_COUNT = 1600;
 
+export const SEARCH_CONCURRENCY = 4;
+
 export const MAX_UPLOAD_SIZE_MB = 100;
 
 export const LS_READER_SESSION = "axe_reader_session";

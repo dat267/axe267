@@ -8,12 +8,14 @@
   import {
     EPUB_CACHE_NAME,
     LOCATIONS_GENERATE_COUNT,
+    SEARCH_CONCURRENCY,
     MAX_UPLOAD_SIZE_MB,
     LS_READER_SESSION,
     LS_READER_SETTINGS,
     LS_LIBRARY_CACHE,
     LS_LOCATIONS_PREFIX,
   } from "../lib/utils/constants";
+  import { mapWithConcurrency } from "../lib/utils/concurrency";
   import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
@@ -446,13 +448,16 @@
     if (!gotoSearch || !book) return;
     isSearching = true; hasSearched = true; searchResults = [];
     try {
-      const results = await Promise.all(book.spine.spineItems.map((item) => {
-        return item.load(book.load.bind(book)).then(async (_doc) => {
+      const results = await mapWithConcurrency(
+        book.spine.spineItems,
+        SEARCH_CONCURRENCY,
+        async (item) => {
+          await item.load(book.load.bind(book));
           const res = await item.find(gotoSearch);
           item.unload();
           return res;
-        });
-      }));
+        },
+      );
       searchResults = results.flat();
     } catch (err) {
       console.error("Search failed:", err);

@@ -26,9 +26,9 @@ jobs:
               - 'firebase.json'
               - '.github/workflows/**'
 
-  deploy-backend:
+  test:
     needs: filter
-    if: needs.filter.outputs.backend == 'true'
+    if: needs.filter.outputs.backend == 'true' || needs.filter.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,15 +36,29 @@ jobs:
         with:
           go-version: "1.24"
           cache-dependency-path: backend/go.mod
-      - name: Build Go binary
+      - name: Backend vet and tests
+        working-directory: backend
         run: |
-          cd backend && go build -ldflags="-s -w" -o axe-backend .
-      - name: Upload binary as artifact
-        uses: actions/upload-artifact@v4
+          go vet ./...
+          go test ./...
+      - uses: actions/setup-node@v6
         with:
-          name: axe-backend-linux-amd64
-          path: backend/axe-backend
-          retention-days: 7
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Frontend tests and lint
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run test
+          npm run lint
+
+  deploy-backend:
+    needs: [filter, test]
+    if: needs.filter.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v3
         with:
@@ -67,7 +81,7 @@ jobs:
             --quiet
 
   deploy-frontend:
-    needs: filter
+    needs: [filter, test]
     if: needs.filter.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:

@@ -245,7 +245,7 @@
       saveTimeout = setTimeout(async () => {
         if (auth.currentUser) {
           const progressId = `${auth.currentUser.uid}_${bookTitle.replace(/[^a-z0-9]/gi, "_")}`;
-          await setDoc(doc(db, "user_progress", progressId), { cfi, updatedAt: serverTimestamp() }, { merge: true });
+          await setDoc(doc(db, "user_progress", progressId), { uid: auth.currentUser.uid, cfi, updatedAt: serverTimestamp() }, { merge: true });
         }
       }, 3000);
     });

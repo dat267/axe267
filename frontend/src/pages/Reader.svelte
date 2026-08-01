@@ -410,7 +410,7 @@
       const storageKey = `${LS_LOCATIONS_PREFIX}${title.replace(/[^a-z0-9]/gi, "_")}`;
       const saved = localStorage.getItem(storageKey);
       if (saved) {
-        book.locations.load(saved);
+        await book.locations.load(saved);
       } else {
         await book.locations.generate(LOCATIONS_GENERATE_COUNT);
         if (!book) return;

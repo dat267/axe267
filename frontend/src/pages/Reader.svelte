@@ -16,6 +16,7 @@
     LS_LOCATIONS_PREFIX,
   } from "../lib/utils/constants";
   import { mapWithConcurrency } from "../lib/utils/concurrency";
+  import { buildCacheKey, cachePrefix, isStaleCacheEntry } from "../lib/utils/readerCache";
   import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
@@ -299,7 +300,7 @@
     const canCache = typeof window !== 'undefined' && 'caches' in window;
     try {
       if (!canCache) throw new Error("Cache API not available");
-      const cacheKey = `https://axe-local/${encodeURIComponent(filePath)}?url=${encodeURIComponent(url)}`;
+      const cacheKey = buildCacheKey(filePath, url);
       const cache = await caches.open(EPUB_CACHE_NAME);
       const cachedResponse = await cache.match(cacheKey);
       if (cachedResponse) {
@@ -308,10 +309,9 @@
         if (!url) throw new Error("No download URL available");
         const response = await fetch(url);
         if (!response.ok) throw new Error("Fetch failed");
-        const prefix = `https://axe-local/${encodeURIComponent(filePath)}`;
         const keys = await cache.keys();
         for (const req of keys) {
-          if (req.url.startsWith(prefix) && req.url !== cacheKey) {
+          if (isStaleCacheEntry(cacheKey, req.url, filePath)) {
             await cache.delete(req);
           }
         }
@@ -322,10 +322,9 @@
       if (canCache) console.warn("Cache error, falling back:", e);
       try {
         if (!canCache) throw new Error("Cache API not available", { cause: e });
-        const prefix = `https://axe-local/${encodeURIComponent(filePath)}`;
         const cache = await caches.open(EPUB_CACHE_NAME);
         const keys = await cache.keys();
-        const match = keys.find(r => r.url.startsWith(prefix));
+        const match = keys.find(r => r.url.startsWith(cachePrefix(filePath)));
         if (match) {
           const cachedResponse = await cache.match(match);
           if (cachedResponse) bookData = await cachedResponse.blob();

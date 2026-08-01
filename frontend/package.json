@@ -24,6 +24,8 @@
     "globals": "^17.7.0",
     "jsdom": "^26.0.0",
     "postcss": "^8.5.14",
+    "prettier": "^3.9.6",
+    "prettier-plugin-svelte": "^3.5.2",
     "svelte": "^5.55.5",
     "svelte-check": "^4.7.3",
     "typescript": "^5.9.3",

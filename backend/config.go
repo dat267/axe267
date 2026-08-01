@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -19,9 +20,29 @@ var (
 )
 
 func loadEnv() {
-	f, err := os.Open(".env")
+	// Look for .env relative to the working directory, then walk up toward the
+	// repo root. `npm run dev` starts the backend from backend/ while the
+	// .env lives at the repository root.
+	var candidates []string
+	for dir, err := os.Getwd(); err == nil; {
+		candidates = append(candidates, filepath.Join(dir, ".env"))
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+	for _, path := range candidates {
+		if err := loadEnvFile(path); err == nil {
+			return
+		}
+	}
+}
+
+func loadEnvFile(path string) error {
+	f, err := os.Open(path)
 	if err != nil {
-		return
+		return err
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -37,6 +58,7 @@ func loadEnv() {
 			os.Setenv(key, val)
 		}
 	}
+	return scanner.Err()
 }
 
 func getProjectID() string {

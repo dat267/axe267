@@ -135,8 +135,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO:  ${{ github.repository }}
         run: |
-          all=$(gh release list --limit 100 --json tagName \
-            | jq -r '.[].tagName' | sort)
+          # Sort by published date (newest first) so the newest releases are
+          # always kept. Tags are hex SHAs, so alphabetical sorting would
+          # treat the newest commit as "oldest" and delete it.
+          all=$(gh release list --limit 100 --json tagName,publishedAt \
+            | jq -r 'sort_by(.publishedAt) | reverse | .[].tagName')
 
           # Keep releases matching current prefix, delete the rest
           count=0

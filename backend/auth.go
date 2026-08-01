@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
@@ -36,7 +38,8 @@ func (v *firebaseVerifier) VerifyIDToken(ctx context.Context, token string) (*Fi
 }
 
 func (v *firebaseVerifier) VerifyAPIKey(ctx context.Context, apiKey string) (*FirebaseUser, error) {
-	docs, err := v.db.Collection("api_keys").Where("key", "==", apiKey).Limit(1).Documents(ctx).GetAll()
+	// Keys are stored as SHA-256 hashes so a database read exposes no secrets.
+	docs, err := v.db.Collection("api_keys").Where("keyHash", "==", hashKey(apiKey)).Limit(1).Documents(ctx).GetAll()
 	if err != nil {
 		return nil, fmt.Errorf("api key lookup failed: %w", err)
 	}
@@ -50,6 +53,11 @@ func (v *firebaseVerifier) VerifyAPIKey(ctx context.Context, apiKey string) (*Fi
 		return nil, fmt.Errorf("invalid user fields")
 	}
 	return &FirebaseUser{UID: uID, Email: email}, nil
+}
+
+func hashKey(key string) string {
+	sum := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(sum[:])
 }
 
 func authMiddleware(v Verifier, next http.HandlerFunc) http.HandlerFunc {

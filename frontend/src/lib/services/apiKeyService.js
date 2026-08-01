@@ -2,23 +2,36 @@ import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, serverTim
 import { db } from "./firebase";
 
 const KEYS_COLLECTION = "api_keys";
+const KEY_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
 export function generateRandomKey(length = 32) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const buffer = new Uint32Array(1);
   let result = "ntfy_";
-  const randomValues = new Uint32Array(length);
-  window.crypto.getRandomValues(randomValues);
   for (let i = 0; i < length; i++) {
-    result += chars.charAt(randomValues[i] % chars.length);
+    let value;
+    do {
+      window.crypto.getRandomValues(buffer);
+      value = buffer[0];
+    } while (value >= 0xffffffff - (0xffffffff % KEY_ALPHABET.length));
+    result += KEY_ALPHABET.charAt(value % KEY_ALPHABET.length);
   }
   return result;
+}
+
+export async function hashApiKey(key) {
+  const data = new TextEncoder().encode(key);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export async function createApiKey(userId, userEmail, name) {
   const key = generateRandomKey();
   try {
+    const keyHash = await hashApiKey(key);
     const docRef = await addDoc(collection(db, KEYS_COLLECTION), {
-      key,
+      keyHash,
       userId,
       userEmail,
       name,

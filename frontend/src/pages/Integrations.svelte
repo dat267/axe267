@@ -91,8 +91,6 @@ ${authHeader} \\
     if (!authStore.user) return;
     return subscribeApiKeys(authStore.user.uid, (keys) => {
       keyState.list = keys;
-      if (keys.length > 0 && !keyState.selected)
-        keyState.selected = keys[0].key;
     });
   });
 
@@ -264,7 +262,7 @@ ${authHeader} \\
                   Active Keys
                 </div>
                 <div class="divide-y divide-border rounded-md border border-border bg-background">
-                  {#each keyState.list as key (key.id || key.key || key.name)}
+                  {#each keyState.list as key (key.id || key.name)}
                     <div class="flex items-center justify-between gap-4 p-4">
                       <div class="flex min-w-0 flex-col">
                         <span class="truncate text-xs font-bold uppercase tracking-wider text-foreground">
@@ -275,12 +273,6 @@ ${authHeader} \\
                         </span>
                       </div>
                       <div class="flex shrink-0 items-center gap-4">
-                        <button
-                          onclick={() => (keyState.selected = key.key)}
-                          class="text-[10px] font-bold uppercase tracking-widest transition-none cursor-pointer {keyState.selected === key.key ? 'text-foreground font-black' : 'text-gray-500 hover:text-foreground'}"
-                        >
-                          {keyState.selected === key.key ? "Selected" : "Select"}
-                        </button>
                         <button
                           onclick={() => handleDeleteKey(key.id)}
                           aria-label="Delete API key {key.name}"

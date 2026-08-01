@@ -51,6 +51,7 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
+            <!-- eslint-disable-next-line svelte/no-at-html-tags -- app.icon comes from ICONS (static, trusted constants); do not pass user input -->
             {@html app.icon}
           </svg>
         </div>

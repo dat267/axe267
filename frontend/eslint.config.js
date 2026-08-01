@@ -31,7 +31,7 @@ export default [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "svelte/no-at-html-tags": "off",
+      "svelte/no-at-html-tags": "warn",
       "svelte/require-each-key": "warn",
     },
   },

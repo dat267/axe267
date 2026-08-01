@@ -174,7 +174,6 @@
           <Route path="/notifications">
             <Lazy 
               load={() => import("./pages/Notifications.svelte")}
-              title="Notifications"
               {notifications}
               totalCount={totalNotificationsCount}
               limit={notificationLimit}

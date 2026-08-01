@@ -32,7 +32,6 @@
   let isReaderOpen = $state(false);
   let isBookLoading = $state(false);
   let metadata = $state(null);
-  let _locations = $state(null);
   let progress = $state(0);
   let saveTimeout;
 
@@ -421,7 +420,6 @@
         }
       }
       if (!book) return;
-      _locations = book.locations;
       if (rendition?.location) progress = book.locations.percentageFromCfi(rendition.location.start.cfi);
     } catch (e) {
       console.warn("Location generation failed:", e);
@@ -510,7 +508,6 @@
   }
 
   let isDeleting = $state(false);
-  let _deleteQueue = $state([]);
 
   async function deleteBook(bookItem) {
     if (!authStore.isAdmin || !confirm(`Permanently delete ${bookItem.title}?`)) return;

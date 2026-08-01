@@ -32,17 +32,11 @@ class AuthStore {
   get user() {
     return this.#user;
   }
-  set user(value) {
-    this.#user = value;
-  }
   get loading() {
     return this.#loading;
   }
   get isVerified() {
     return this.#isVerified;
-  }
-  set isVerified(value) {
-    this.#isVerified = value;
   }
   get isAdmin() {
     return this.#isAdmin;

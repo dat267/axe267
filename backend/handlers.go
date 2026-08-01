@@ -85,6 +85,23 @@ func setCORSHeaders(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, x-api-key")
 }
 
+// clientIP returns the originating client address. Behind Cloud Run's load
+// balancer RemoteAddr is the Google Front End, so the first untrusted
+// X-Forwarded-For hop is used when present.
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if first, _, ok := strings.Cut(xff, ","); ok {
+			return strings.TrimSpace(first)
+		}
+		return strings.TrimSpace(xff)
+	}
+	ip := r.RemoteAddr
+	if idx := strings.LastIndex(ip, ":"); idx >= 0 {
+		ip = ip[:idx]
+	}
+	return ip
+}
+
 func handleNotify(ctx context.Context, store NotificationStore, w http.ResponseWriter, r *http.Request) {
 	setCORSHeaders(w)
 	if r.Method == "OPTIONS" {
@@ -92,11 +109,7 @@ func handleNotify(ctx context.Context, store NotificationStore, w http.ResponseW
 		return
 	}
 
-	ip := r.RemoteAddr
-	if idx := strings.LastIndex(ip, ":"); idx >= 0 {
-		ip = ip[:idx]
-	}
-	if isRateLimited(ip) {
+	if isRateLimited(clientIP(r)) {
 		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}

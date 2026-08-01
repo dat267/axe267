@@ -2,12 +2,20 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
-	"fmt"
-	"net/http"
+	"context"
 	"os"
 	"strings"
-	"time"
+	"sync"
+
+	firebase "firebase.google.com/go/v4"
+	"golang.org/x/oauth2"
+	"google.golang.org/api/option"
+)
+
+var (
+	appOnce sync.Once
+	app     *firebase.App
+	appErr  error
 )
 
 func loadEnv() {
@@ -38,31 +46,16 @@ func getProjectID() string {
 	return os.Getenv("VITE_FIREBASE_PROJECT_ID")
 }
 
-func getAccessToken() string {
-	if token := os.Getenv("ACCESS_TOKEN"); token != "" {
-		return token
-	}
-	client := &http.Client{Timeout: 1 * time.Second}
-	req, err := http.NewRequest("GET", "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token", nil)
-	if err != nil {
-		return ""
-	}
-	req.Header.Set("Metadata-Flavor", "Google")
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Printf("Warning: metadata server not available: %v\n", err)
-		return ""
-	}
-	defer resp.Body.Close()
-	var res map[string]any
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		fmt.Printf("Warning: failed to decode metadata response: %v\n", err)
-		return ""
-	}
-	token, ok := res["access_token"].(string)
-	if !ok {
-		fmt.Printf("Warning: no access_token in metadata response\n")
-		return ""
-	}
-	return token
+// initApp builds the Firebase app once, using Application Default Credentials
+// (which resolve automatically on Cloud Run) or a static ACCESS_TOKEN for
+// local development.
+func initApp(ctx context.Context) (*firebase.App, error) {
+	appOnce.Do(func() {
+		var opts []option.ClientOption
+		if token := os.Getenv("ACCESS_TOKEN"); token != "" {
+			opts = append(opts, option.WithTokenSource(oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})))
+		}
+		app, appErr = firebase.NewApp(ctx, &firebase.Config{ProjectID: getProjectID()}, opts...)
+	})
+	return app, appErr
 }

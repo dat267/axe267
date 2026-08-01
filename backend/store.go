@@ -35,7 +35,30 @@ func (s *firestoreStore) Create(ctx context.Context, userEmail string, notif Not
 	return ref.ID, nil
 }
 
+// deleteInBatches invokes batchFn repeatedly until it returns fewer than
+// limit documents, so that clearing a large collection is not capped by the
+// Firestore 500-write-per-commit limit.
+func deleteInBatches(ctx context.Context, limit int, batchFn func(context.Context, int) (int, error)) (int, error) {
+	var total int
+	for {
+		n, err := batchFn(ctx, limit)
+		if err != nil {
+			return total, err
+		}
+		total += n
+		if n < limit {
+			return total, nil
+		}
+	}
+}
+
 func (s *firestoreStore) DeleteByEmail(ctx context.Context, userEmail string, limit int) (int, error) {
+	return deleteInBatches(ctx, limit, func(ctx context.Context, batch int) (int, error) {
+		return s.deleteBatchByEmail(ctx, userEmail, batch)
+	})
+}
+
+func (s *firestoreStore) deleteBatchByEmail(ctx context.Context, userEmail string, limit int) (int, error) {
 	iter := s.db.Collection("notifications").Where("userEmail", "==", userEmail).Limit(limit).Documents(ctx)
 	var refs []*firestore.DocumentRef
 	for {

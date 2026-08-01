@@ -70,16 +70,17 @@
       return;
     }
 
+    isDeleting = true;
     try {
       const token = await auth.currentUser?.getIdToken();
       if (token) {
-        isDeleting = true;
         await clearAllNotifications(token);
         showClearConfirm = false;
         clearTimeout(confirmTimer);
       }
     } catch (e) {
       console.error(e);
+    } finally {
       isDeleting = false;
     }
   };
@@ -107,9 +108,6 @@
           }
           notifications = data;
           initialLoadDone = true;
-          if (isDeleting && data.length === 0) {
-            isDeleting = false;
-          }
         },
         notificationLimit,
       );

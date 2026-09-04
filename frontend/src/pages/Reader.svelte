@@ -577,8 +577,7 @@
   );
 </script>
 
-{#if !isReaderOpen}
-<div class="flex flex-1 flex-col">
+<div class="flex flex-1 flex-col" class:hidden={isReaderOpen}>
   <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-4">
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-bold tracking-tight lowercase">reader</h1>
@@ -703,7 +702,6 @@
       {/each}
     {/if}
   </div>
-{/if}
 
   <!-- Reader Overlay -->
   {#if isReaderOpen}

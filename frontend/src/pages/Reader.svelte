@@ -32,8 +32,18 @@
   let collections = $state([]);
   let isLoading = $state(true);
   let currentBookName = $state("");
-  let isReaderOpen = $state(false);
-  let isBookLoading = $state(false);
+
+  // If URL has ?book=, open reader immediately so template renders the reader
+  // overlay instead of flashing the book list.
+  const initialBookPath = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("book")
+    : null;
+  const initialTitle = initialBookPath
+    ? decodeURIComponent(initialBookPath).split("/").pop()?.replace(/\.[^/.]+$/, "") || ""
+    : "";
+  let isReaderOpen = $state(!!initialBookPath);
+  let isBookLoading = $state(!!initialBookPath);
+  currentBookName = initialTitle;
   let metadata = $state(null);
   let progress = $state(0);
   let saveTimeout;
@@ -523,15 +533,10 @@
         console.error("Failed to load Firebase storage module:", err);
       }
 
-      const params = new URLSearchParams(window.location.search);
-      const bookPath = params.get("book");
-
-      // If a book param is present, open it immediately without loading the library.
-      if (bookPath) {
-        const decoded = decodeURIComponent(bookPath);
-        const fileName = decoded.split("/").pop() || "";
-        const title = fileName.replace(/\.[^/.]+$/, "");
-        openBook(title, decoded);
+      // If a book param is present in the URL, open it immediately.
+      // The reader overlay is already rendered (isReaderOpen set at init).
+      if (initialBookPath) {
+        openBook(initialTitle, decodeURIComponent(initialBookPath));
       }
 
       // Load library in background (for the book list view).

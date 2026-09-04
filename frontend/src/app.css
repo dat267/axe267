@@ -94,9 +94,6 @@
   .icon-toggle-group {
     @apply flex items-center gap-1;
   }
-  .icon-toggle-group .icon-btn {
-    @apply rounded-sm;
-  }
 }
 
 body {

@@ -516,6 +516,25 @@
 
   onMount(() => {
     (async () => {
+      // Initialize storage first (needed by both openBook and loadLibrary).
+      try {
+        storage = await getStorageInstance();
+      } catch (err) {
+        console.error("Failed to load Firebase storage module:", err);
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const bookPath = params.get("book");
+
+      // If a book param is present, open it immediately without loading the library.
+      if (bookPath) {
+        const decoded = decodeURIComponent(bookPath);
+        const fileName = decoded.split("/").pop() || "";
+        const title = fileName.replace(/\.[^/.]+$/, "");
+        openBook(title, decoded);
+      }
+
+      // Load library in background (for the book list view).
       const cachedLib = localStorage.getItem(LS_LIBRARY_CACHE);
       if (cachedLib) {
         try {
@@ -527,20 +546,8 @@
           console.warn("Failed to parse library cache:", ce);
         }
       }
-      try {
-        storage = await getStorageInstance();
-      } catch (err) {
-        console.error("Failed to load Firebase storage module:", err);
-      }
       await loadLibrary();
 
-      const params = new URLSearchParams(window.location.search);
-      const bookPath = params.get("book");
-      if (bookPath) {
-        const decoded = decodeURIComponent(bookPath);
-        const match = tracks.find(t => t.filePath === decoded);
-        if (match) openBook(match.title, match.filePath);
-      }
       const savedSettings = localStorage.getItem(LS_READER_SETTINGS);
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);

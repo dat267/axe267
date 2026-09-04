@@ -92,10 +92,10 @@
     @apply flex gap-1 rounded-md border border-border bg-background p-1;
   }
   .icon-toggle-group {
-    @apply flex items-center gap-1 rounded-md border border-border bg-background p-1;
+    @apply flex items-center gap-1;
   }
   .icon-toggle-group .icon-btn {
-    @apply rounded-sm;
+    @apply rounded-none border-0 bg-transparent;
   }
 }
 

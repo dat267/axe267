@@ -12,12 +12,19 @@
     "lint:fix": "eslint . --fix && prettier --write .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:component": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "@tailwindcss/postcss": "^4.2.4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/svelte": "^5.4.2",
+    "@testing-library/user-event": "^14.6.7",
     "autoprefixer": "^10.5.0",
     "eslint": "^10.7.0",
     "eslint-plugin-svelte": "^3.22.0",

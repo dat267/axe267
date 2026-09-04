@@ -7,6 +7,8 @@
     "dev": "concurrently \"npm:dev:frontend\" \"npm:dev:backend\"",
     "build:frontend": "npm run build --prefix frontend",
     "test:frontend": "npm run test --prefix frontend",
+    "test:component": "npm run test:component --prefix frontend",
+    "test:e2e": "npm run test:e2e --prefix frontend",
     "test:backend": "cd backend && go test ./...",
     "test": "npm run test:frontend && npm run test:backend",
     "lint:frontend": "npm run lint --prefix frontend",

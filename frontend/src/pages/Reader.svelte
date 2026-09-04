@@ -16,7 +16,7 @@
     LS_LOCATIONS_PREFIX,
   } from "../lib/utils/constants";
   import { mapWithConcurrency } from "../lib/utils/concurrency";
-  import { buildCacheKey, cachePrefix, isStaleCacheEntry } from "../lib/utils/readerCache";
+  import { loadBookData } from "../lib/services/bookLoader";
   import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
@@ -255,24 +255,28 @@
     const currentCfi = rendition.location?.start?.cfi;
     rendition.destroy();
     rendition = null;
-    rendition = book.renderTo(readerElement, {
-      width: "100%",
-      height: "100%",
-      flow,
-      manager: flow === "scrolled" ? "continuous" : "default",
-      spread: flow === "scrolled" ? "none" : "auto"
-    });
-    applyTypography();
+
     try {
+      rendition = book.renderTo(readerElement, {
+        width: "100%",
+        height: "100%",
+        flow,
+        manager: flow === "scrolled" ? "continuous" : "default",
+        spread: flow === "scrolled" ? "none" : "auto"
+      });
+
       if (currentCfi) {
         await rendition.display(currentCfi);
       } else {
         await rendition.display();
       }
+
+      applyTypography();
     } catch (e) {
       console.warn("Flow switch display failed:", e);
-      try { await rendition.display(); } catch (e2) { console.error("Flow switch fallback failed:", e2); }
+      try { if (rendition) await rendition.display(); } catch (e2) { console.error("Flow switch fallback failed:", e2); }
     }
+
     attachRenditionEvents(currentBookName);
   }
   async function openBook(title, filePath) {
@@ -297,51 +301,12 @@
     }
     await tick();
     let bookData;
-    const canCache = typeof window !== 'undefined' && 'caches' in window;
     try {
-      if (!canCache) throw new Error("Cache API not available");
-      const cacheKey = buildCacheKey(filePath, url);
-      const cache = await caches.open(EPUB_CACHE_NAME);
-      const cachedResponse = await cache.match(cacheKey);
-      if (cachedResponse) {
-        bookData = await cachedResponse.blob();
-      } else {
-        if (!url) throw new Error("No download URL available");
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Fetch failed");
-        const keys = await cache.keys();
-        for (const req of keys) {
-          if (isStaleCacheEntry(cacheKey, req.url, filePath)) {
-            await cache.delete(req);
-          }
-        }
-        await cache.put(cacheKey, response.clone());
-        bookData = await response.blob();
-      }
+      bookData = await loadBookData(filePath, url);
     } catch (e) {
-      if (canCache) console.warn("Cache error, falling back:", e);
-      try {
-        if (!canCache) throw new Error("Cache API not available", { cause: e });
-        const cache = await caches.open(EPUB_CACHE_NAME);
-        const keys = await cache.keys();
-        const match = keys.find(r => r.url.startsWith(cachePrefix(filePath)));
-        if (match) {
-          const cachedResponse = await cache.match(match);
-          if (cachedResponse) bookData = await cachedResponse.blob();
-        }
-      } catch (offlineErr) {
-        if (canCache) console.warn("Offline cache check failed:", offlineErr);
-      }
-      if (!bookData && url) {
-        try {
-          const response = await fetch(url);
-          if (response.ok) bookData = await response.blob();
-        } catch (_fetchErr) {
-          bookData = url;
-        }
-      } else if (!bookData) {
-        bookData = url;
-      }
+      console.error("Failed to load book data:", e);
+      isBookLoading = false;
+      return;
     }
     if (book) {
       book.destroy();

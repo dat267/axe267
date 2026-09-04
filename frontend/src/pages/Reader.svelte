@@ -360,25 +360,23 @@
       return;
     }
 
-    rendition = book.renderTo(readerElement, {
-      width: "100%",
-      height: "100%",
-      flow,
-      manager: flow === "scrolled" ? "continuous" : "default",
-      spread: flow === "scrolled" ? "none" : "auto"
-    });
-
-    applyTypography();
-    
     let savedCfi = null;
-    if (auth.currentUser) {
-      const progressId = `${auth.currentUser.uid}_${title.replace(/[^a-z0-9]/gi, "_")}`;
-      const docRef = doc(db, "user_progress", progressId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) savedCfi = docSnap.data().cfi;
-    }
-
     try {
+      rendition = book.renderTo(readerElement, {
+        width: "100%",
+        height: "100%",
+        flow,
+        manager: flow === "scrolled" ? "continuous" : "default",
+        spread: flow === "scrolled" ? "none" : "auto"
+      });
+
+      if (auth.currentUser) {
+        const progressId = `${auth.currentUser.uid}_${title.replace(/[^a-z0-9]/gi, "_")}`;
+        const docRef = doc(db, "user_progress", progressId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) savedCfi = docSnap.data().cfi;
+      }
+
       if (savedCfi) {
         await rendition.display(savedCfi);
       } else {
@@ -394,6 +392,8 @@
     } finally {
       isBookLoading = false;
     }
+
+    applyTypography();
 
     book.loaded.metadata.then((m) => metadata = m);
     book.loaded.navigation.then((nav) => toc = flattenToc(nav.toc || []));

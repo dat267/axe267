@@ -19,13 +19,11 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
-const mockUser = { email: "test@example.com", getIdToken: vi.fn().mockResolvedValue("token") };
 
 describe("NotificationBar", () => {
   it("renders theme and signout buttons", () => {
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/",
         onThemeCycle: vi.fn(),
         onSignOut: vi.fn(),
@@ -38,7 +36,6 @@ describe("NotificationBar", () => {
   it("renders home button", () => {
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/",
         onThemeCycle: vi.fn(),
         onSignOut: vi.fn(),
@@ -50,7 +47,6 @@ describe("NotificationBar", () => {
   it("shows disabled back button on home page", () => {
     const { container } = render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/",
         onThemeCycle: vi.fn(),
         onSignOut: vi.fn(),
@@ -63,7 +59,6 @@ describe("NotificationBar", () => {
   it("shows active back button when not on home page", () => {
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/notifications",
         notifications: [],
         onThemeCycle: vi.fn(),
@@ -78,7 +73,6 @@ describe("NotificationBar", () => {
   it("shows clear-all button on notifications page", () => {
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/notifications",
         notifications: [{ id: "1", title: "Test" }],
         onThemeCycle: vi.fn(),
@@ -92,7 +86,6 @@ describe("NotificationBar", () => {
   it("hides clear-all button on non-notifications page", () => {
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/",
         onThemeCycle: vi.fn(),
         onSignOut: vi.fn(),
@@ -106,7 +99,6 @@ describe("NotificationBar", () => {
     const onClearAll = vi.fn().mockResolvedValue(undefined);
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/notifications",
         notifications: [{ id: "1", title: "Test" }],
         onThemeCycle: vi.fn(),
@@ -126,7 +118,6 @@ describe("NotificationBar", () => {
   it("disables clear-all button when notifications are empty", () => {
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/notifications",
         notifications: [],
         onThemeCycle: vi.fn(),
@@ -142,7 +133,6 @@ describe("NotificationBar", () => {
     const onThemeCycle = vi.fn();
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/",
         onThemeCycle,
         onSignOut: vi.fn(),
@@ -157,7 +147,6 @@ describe("NotificationBar", () => {
     const onSignOut = vi.fn();
     render(NotificationBar, {
       props: {
-        user: mockUser,
         currentPath: "/",
         onThemeCycle: vi.fn(),
         onSignOut,

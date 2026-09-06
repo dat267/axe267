@@ -3,28 +3,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const FILE_PATH = "books/test.epub";
 const TITLE = "test";
 
-function mockStorage() {
-  const items = [];
-  const prefixes = [];
-
-  const mockRef = vi.fn((_storage, path) => ({ fullPath: path, name: path.split("/").pop() }));
-  const mockListAll = vi.fn(async (_ref) => ({ items, prefixes }));
-  const mockDeleteObject = vi.fn(async () => undefined);
-  const mockUploadBytes = vi.fn(async () => undefined);
-
-  return {
-    items,
-    prefixes,
-    mockRef,
-    mockListAll,
-    mockDeleteObject,
-    mockUploadBytes,
-    storage: {
-      _mock: true,
-    },
-  };
-}
-
 vi.mock("firebase/storage", () => ({
   ref: vi.fn((_s, p) => ({ fullPath: p, name: p.split("/").pop() })),
   listAll: vi.fn(),

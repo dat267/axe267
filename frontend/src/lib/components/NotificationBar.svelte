@@ -3,7 +3,6 @@
   import { ICONS } from "../utils/icons";
 
   let {
-    user = null,
     currentPath = "/",
     notifications = [],
     themeMode = "dark",

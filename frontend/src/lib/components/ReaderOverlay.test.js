@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import ReaderOverlay from "./ReaderOverlay.svelte";
-import { text } from "../components/test-utils.js";
 
 const mockRenderer = {
   next: vi.fn(),

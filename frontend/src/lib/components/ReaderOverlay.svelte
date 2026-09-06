@@ -5,7 +5,6 @@
   import { ICONS } from "../utils/icons";
 
   let {
-    renderer,
     metadata = null,
     progress = 0,
     toc = [],
@@ -15,7 +14,6 @@
     fontFamily = "ui-sans-serif, system-ui, sans-serif",
     lineHeight = 1.5,
     isBookLoading = false,
-    isDarkMode = false,
     themeMode = "dark",
     onClose,
     onNext,
@@ -59,12 +57,6 @@
     } finally {
       isSearching = false;
     }
-  }
-
-  function closePanels() {
-    showToc = false;
-    showGoTo = false;
-    showSettings = false;
   }
 </script>
 

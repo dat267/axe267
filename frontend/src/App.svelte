@@ -111,7 +111,6 @@
     <div class="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
       <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8">
         <NotificationBar
-          user={authStore.user}
           {currentPath}
           {notifications}
           themeMode={themeStore.mode}

@@ -172,33 +172,9 @@
       isBookLoading = false;
       return;
     }
-    if (book) {
-      book.destroy();
-      book = null;
-      rendition = null;
-    }
-
-    book = ePub(/** @type {any} */ (bookData));
-    
-    try {
-      await book.opened;
-      await book.ready;
-    } catch (err) {
-      console.error("Book loading failed:", err);
-      isBookLoading = false;
-      return;
-    }
 
     let savedCfi = null;
     try {
-      rendition = book.renderTo(readerElement, {
-        width: "100%",
-        height: "100%",
-        flow,
-        manager: flow === "scrolled" ? "continuous" : "default",
-        spread: flow === "scrolled" ? "none" : "auto"
-      });
-
       if (auth.currentUser) {
         const progressId = `${auth.currentUser.uid}_${title.replace(/[^a-z0-9]/gi, "_")}`;
         const docRef = doc(db, "user_progress", progressId);
@@ -206,7 +182,8 @@
         if (docSnap.exists()) savedCfi = docSnap.data().cfi;
       }
 
-      // Create renderer and render the book
+      // Create renderer and render the book (renderer owns ePub creation,
+      // readiness, rendition, and display).
       renderer = createBookRenderer(readerElement, {
         flow,
         isDarkMode: themeStore.darkMode,
@@ -232,11 +209,6 @@
     renderer.generateLocations(title);
 
     attachRenditionEvents(title);
-  }
-
-  async function generateLocations(title) {
-    if (!renderer) return;
-    await renderer.generateLocations(title);
   }
 
   function next() { renderer?.next(); }
@@ -315,7 +287,7 @@
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
         fontSize = Math.min(96, Math.max(8, parsed.fontSize || 16));
-        fontFamily = parsed.fontFamily || FONT_OPTIONS[0].value;
+        fontFamily = parsed.fontFamily || "ui-sans-serif, system-ui, sans-serif";
         lineHeight = Math.min(3.0, Math.max(1.0, parsed.lineHeight || 1.5));
         flow = parsed.flow || "paginated";
       }
@@ -327,7 +299,7 @@
       if (isReaderOpen && !hasBook) closeReader(false);
     };
     window.addEventListener("popstate", handlePopState);
-    return () => { if (book) book.destroy(); window.removeEventListener("popstate", handlePopState); };
+    return () => { renderer?.destroy(); window.removeEventListener("popstate", handlePopState); };
   });
 
   const filteredTracks = $derived(

@@ -5,7 +5,6 @@
   import { auth } from "./lib/services/firebase";
   import { authStore } from "./lib/stores/authStore.svelte.js";
   import { themeStore } from "./lib/stores/themeStore.svelte.js";
-  import { ICONS } from "./lib/utils/icons";
   import {
     subscribeNotifications,
     deleteNotification,
@@ -16,7 +15,7 @@
     requestNotificationPermission,
     sendLocalNotification,
   } from "./lib/utils/notificationPermission.js";
-  import Icon from "./lib/components/Icon.svelte";
+  import NotificationBar from "./lib/components/NotificationBar.svelte";
   import Home from "./pages/Home.svelte";
   import Lazy from "./lib/components/Lazy.svelte";
 
@@ -58,30 +57,10 @@
     try { await deleteNotification(id); } catch (e) { console.error(e); }
   };
 
-  let showClearConfirm = $state(false);
-  let isDeleting = $state(false);
-  let confirmTimer;
-
   const handleClearAll = async () => {
-    if (!showClearConfirm) {
-      showClearConfirm = true;
-      clearTimeout(confirmTimer);
-      confirmTimer = setTimeout(() => { showClearConfirm = false; }, 3000);
-      return;
-    }
-
-    isDeleting = true;
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (token) {
-        await clearAllNotifications(token);
-        showClearConfirm = false;
-        clearTimeout(confirmTimer);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      isDeleting = false;
+    const token = await auth.currentUser?.getIdToken();
+    if (token) {
+      await clearAllNotifications(token);
     }
   };
 
@@ -131,41 +110,15 @@
   <Router {url}>
     <div class="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
       <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8">
-        <div class="flex items-center gap-2">
-          {#if currentPath !== "/"}
-            <Link to="/" class="icon-btn" aria-label="Back">
-              <Icon svg={ICONS.BACK} size={20} />
-            </Link>
-          {:else}
-            <div class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-gray-300 dark:text-gray-700 select-none cursor-not-allowed">
-              <Icon svg={ICONS.BACK} size={20} />
-            </div>
-          {/if}
-          <Link to="/" class="icon-btn" aria-label="Home">
-            <Icon svg={ICONS.HOME} size={20} />
-          </Link>
-        </div>
-        <div class="flex items-center gap-2">
-          {#if currentPath === "/notifications"}
-            <button onclick={handleClearAll} disabled={notifications.length === 0 || isDeleting} class="icon-btn {showClearConfirm ? '!border-rose-500 !bg-rose-500 !text-white hover:!bg-rose-600 hover:!border-rose-600' : ''}">
-              {#if isDeleting}
-                <span class="text-sm font-bold font-mono">...</span>
-              {:else if showClearConfirm} 
-                <Icon svg={ICONS.CHECK} size={20} />
-              {:else} 
-                <Icon svg={ICONS.DELETE} size={20} /> 
-              {/if}
-            </button>
-          {/if}
-          <button onclick={() => themeStore.cycleTheme()} class="icon-btn" aria-label="Cycle theme">
-            {#if themeStore.mode === "dark"} <Icon svg={ICONS.MOON} size={20} />
-            {:else if themeStore.mode === "light"} <Icon svg={ICONS.SUN} size={20} />
-            {:else} <Icon svg={ICONS.MONITOR} size={20} /> {/if}
-          </button>
-          <button onclick={handleLogout} class="icon-btn danger" aria-label="Sign out">
-            <Icon svg={ICONS.SIGN_OUT} size={20} />
-          </button>
-        </div>
+        <NotificationBar
+          user={authStore.user}
+          {currentPath}
+          {notifications}
+          themeMode={themeStore.mode}
+          onThemeCycle={() => themeStore.cycleTheme()}
+          onSignOut={handleLogout}
+          onClearAll={handleClearAll}
+        />
       </header>
 
       <main class="flex flex-1 overflow-y-auto overflow-x-hidden">

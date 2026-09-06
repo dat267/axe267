@@ -1,13 +1,8 @@
 <script>
-  import {
-    verifyBeforeUpdateEmail,
-    reauthenticateWithCredential,
-    EmailAuthProvider,
-    deleteUser,
-  } from "firebase/auth";
   import { auth } from "../lib/services/firebase";
   import { authStore } from "../lib/stores/authStore.svelte.js";
   import { getErrorMessage } from "../lib/utils/authErrors";
+  import { updateEmail, deleteAccount, reauthenticate } from "../lib/services/accountService";
   import Input from "../lib/components/Input.svelte";
   import Button from "../lib/components/Button.svelte";
   import Alert from "../lib/components/Alert.svelte";
@@ -28,18 +23,15 @@
     pendingAction = "email";
 
     try {
-      if (auth.currentUser) {
-        await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
-        message =
-          "A verification email has been sent to your new address. Please verify it to complete the change.";
+      const result = await updateEmail(auth.currentUser, newEmail);
+      if (result.success) {
+        message = "A verification email has been sent to your new address. Please verify it to complete the change.";
         newEmail = "";
-      }
-    } catch (e) {
-      if (e.code === "auth/requires-recent-login") {
+      } else if (result.requiresReauth) {
         showReauth = true;
-        error = getErrorMessage(e.code);
+        error = getErrorMessage(result.error);
       } else {
-        error = getErrorMessage(e.code || e.message);
+        error = getErrorMessage(result.error);
       }
     } finally {
       loading = false;
@@ -59,15 +51,12 @@
     pendingAction = "delete";
 
     try {
-      if (auth.currentUser) {
-        await deleteUser(auth.currentUser);
-      }
-    } catch (e) {
-      if (e.code === "auth/requires-recent-login") {
+      const result = await deleteAccount(auth.currentUser);
+      if (!result.success && result.requiresReauth) {
         showReauth = true;
-        error = getErrorMessage(e.code);
-      } else {
-        error = getErrorMessage(e.code || e.message);
+        error = getErrorMessage(result.error);
+      } else if (!result.success) {
+        error = getErrorMessage(result.error);
       }
     } finally {
       loading = false;
@@ -79,12 +68,8 @@
     error = "";
     loading = true;
     try {
-      if (auth.currentUser?.email) {
-        const credential = EmailAuthProvider.credential(
-          auth.currentUser.email,
-          password,
-        );
-        await reauthenticateWithCredential(auth.currentUser, credential);
+      const result = await reauthenticate(auth.currentUser, password);
+      if (result.success) {
         showReauth = false;
         password = "";
 
@@ -93,9 +78,9 @@
         } else if (pendingAction === "delete") {
           await handleDeleteAccount();
         }
+      } else {
+        error = getErrorMessage(result.error || "auth/invalid-credential");
       }
-    } catch (e) {
-      error = getErrorMessage(e.code || "auth/invalid-credential");
     } finally {
       loading = false;
     }
@@ -106,14 +91,13 @@
     message = "";
     loading = true;
     try {
-      if (auth.currentUser) {
-        await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
-        message =
-          "A verification email has been sent to your new address. Please verify it to complete the change.";
+      const result = await updateEmail(auth.currentUser, newEmail);
+      if (result.success) {
+        message = "A verification email has been sent to your new address. Please verify it to complete the change.";
         newEmail = "";
+      } else {
+        error = getErrorMessage(result.error);
       }
-    } catch (e) {
-      error = getErrorMessage(e.code || e.message);
     } finally {
       loading = false;
     }

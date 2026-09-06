@@ -1,14 +1,9 @@
 <script>
-    import {
-        signInWithEmailAndPassword,
-        createUserWithEmailAndPassword,
-        sendPasswordResetEmail,
-        sendEmailVerification,
-        signOut,
-    } from "firebase/auth";
+    import { signOut } from "firebase/auth";
     import { auth } from "../lib/services/firebase";
     import { authStore } from "../lib/stores/authStore.svelte.js";
     import { getErrorMessage } from "../lib/utils/authErrors";
+    import { signIn, signUp, resetPassword, sendVerification } from "../lib/services/authService";
     import Input from "../lib/components/Input.svelte";
     import Button from "../lib/components/Button.svelte";
     import Alert from "../lib/components/Alert.svelte";
@@ -59,24 +54,21 @@
         e.preventDefault();
 
         if (mode === "signin") {
-            await executeAction(() =>
-                signInWithEmailAndPassword(auth, email, password),
-            );
+            await executeAction(async () => {
+                const result = await signIn(auth, email, password);
+                if (result.error) throw result.error;
+            });
         } else if (mode === "signup") {
             await executeAction(async () => {
-                const cred = await createUserWithEmailAndPassword(
-                    auth,
-                    email,
-                    password,
-                );
-                await sendEmailVerification(cred.user);
-                // Note: user is already logged in by Firebase, 
-                // effect will switch mode to 'verify' automatically.
+                const result = await signUp(auth, email, password);
+                if (result.error) throw result.error;
+                await sendVerification(result.user);
                 message = "Account created! A verification email has been sent.";
             });
         } else if (mode === "forgot") {
             await executeAction(async () => {
-                await sendPasswordResetEmail(auth, email);
+                const result = await resetPassword(auth, email);
+                if (result.error) throw result.error;
                 mode = "signin";
             }, "Password reset email sent!");
         }
@@ -93,7 +85,8 @@
 
     function resend() {
         executeAction(async () => {
-            if (auth.currentUser) await sendEmailVerification(auth.currentUser);
+            const result = await sendVerification(auth.currentUser);
+            if (result.error) throw result.error;
         }, "Verification email sent! Please check your inbox.");
     }
 </script>

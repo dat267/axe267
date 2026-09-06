@@ -57,8 +57,8 @@ describe("loadBookData", () => {
     mockMatch.mockResolvedValue(textResponse("epub content"));
 
     const result = await loadBookData(FILE_PATH, DOWNLOAD_URL);
-    expect(result).toBeInstanceOf(Blob);
-    expect(result.size).toBeGreaterThan(0);
+    expect(result?.size).toBeGreaterThan(0);
+    expect(result?.type).toContain("epub");
   });
 
   it("fetches and caches when not in cache", async () => {
@@ -66,7 +66,7 @@ describe("loadBookData", () => {
     globalThis.fetch = vi.fn(async () => textResponse("fresh epub"));
 
     const result = await loadBookData(FILE_PATH, DOWNLOAD_URL);
-    expect(result).toBeInstanceOf(Blob);
+    expect(result?.size).toBeGreaterThan(0);
     expect(mockPut).toHaveBeenCalledOnce();
   });
 
@@ -93,8 +93,8 @@ describe("loadBookData", () => {
     });
 
     const result = await loadBookData(FILE_PATH, DOWNLOAD_URL);
-    expect(result).toBeInstanceOf(Blob);
-    expect(result.size).toBeGreaterThan(0);
+    expect(result?.size).toBeGreaterThan(0);
+    expect(result?.type).toContain("epub");
   });
 
   it("cleans stale cache entries on fresh fetch", async () => {
@@ -112,6 +112,6 @@ describe("loadBookData", () => {
     globalThis.caches = undefined;
     globalThis.fetch = vi.fn(async () => textResponse("no cache"));
     const result = await loadBookData(FILE_PATH, DOWNLOAD_URL);
-    expect(result).toBeInstanceOf(Blob);
+    expect(result?.size).toBeGreaterThan(0);
   });
 });

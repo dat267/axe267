@@ -5,17 +5,16 @@
   import { themeStore } from "../lib/stores/themeStore.svelte.js";
   import { ICONS } from "../lib/utils/icons";
   import {
-    EPUB_CACHE_NAME,
     SEARCH_CONCURRENCY,
     MAX_UPLOAD_SIZE_MB,
     LS_READER_SESSION,
     LS_READER_SETTINGS,
     LS_LIBRARY_CACHE,
-    LS_LOCATIONS_PREFIX,
   } from "../lib/utils/constants";
   import { loadBookData } from "../lib/services/bookLoader";
   import { createBookRenderer } from "../lib/services/bookRenderer";
-  import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
+  import { ref, getDownloadURL } from "firebase/storage";
+  import { listBooks, uploadBook, deleteBook as deleteBookFromStorage, clearBookCache } from "../lib/services/libraryService";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
   import Modal from "../lib/components/Modal.svelte";
@@ -83,9 +82,7 @@
         isUploading = false;
         return;
       }
-      const storagePath = col === "Books" ? `books/${fileName}` : `books/${col}/${fileName}`;
-      const fileRef = ref(storage, storagePath);
-      await uploadBytes(fileRef, uploadFile);
+      await uploadBook(storage, uploadFile, col);
       uploadFile = null;
       newCollectionName = "";
       uploadCollection = "Books";
@@ -116,50 +113,9 @@
       if (!storage) {
         storage = await getStorageInstance();
       }
-      const rootRef = ref(storage, "books");
-      const res = await listAll(rootRef);
-
-      const folderResults = await Promise.all(res.prefixes.map(async (folderRef) => {
-        const folderRes = await listAll(folderRef);
-        const epubs = folderRes.items.filter(i => i.name.toLowerCase().endsWith('.epub'));
-        return {
-          collection: epubs.length > 0 ? { id: folderRef.name, name: folderRef.name } : null,
-          tracks: epubs.map(itemRef => ({
-            id: itemRef.fullPath,
-            title: itemRef.name.replace(/\.[^/.]+$/, ""),
-            fileName: itemRef.name,
-            filePath: itemRef.fullPath,
-            url: "",
-            collectionId: folderRef.name
-          })),
-        };
-      }));
-
-      const newCollections = [];
-      const newTracks = [];
-
-      for (const result of folderResults) {
-        if (result.collection) newCollections.push(result.collection);
-        newTracks.push(...result.tracks);
-      }
-
-      const rootEpubs = res.items.filter(i => i.name.toLowerCase().endsWith('.epub'));
-      if (rootEpubs.length > 0) {
-        newCollections.push({ id: "Books", name: "Books" });
-        for (const itemRef of rootEpubs) {
-          newTracks.push({
-            id: itemRef.fullPath,
-            title: itemRef.name.replace(/\.[^/.]+$/, ""),
-            fileName: itemRef.name,
-            filePath: itemRef.fullPath,
-            url: "",
-            collectionId: "Books"
-          });
-        }
-      }
-
+      const { collections: newCollections, tracks: newTracks } = await listBooks(storage);
       collections = newCollections;
-      tracks = newTracks.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+      tracks = newTracks;
       localStorage.setItem(LS_LIBRARY_CACHE, JSON.stringify({ collections, tracks }));
     } catch (e) {
       console.error("Failed to list bucket:", e);
@@ -344,28 +300,8 @@
     if (isDeleting) return;
     isDeleting = true;
     try {
-      await deleteObject(ref(storage, bookItem.filePath));
-      const canCache = typeof window !== 'undefined' && 'caches' in window;
-      try {
-        if (canCache) {
-          const prefix = `https://axe-local/${encodeURIComponent(bookItem.filePath)}`;
-          const cache = await caches.open(EPUB_CACHE_NAME);
-          const keys = await cache.keys();
-          for (const req of keys) {
-            if (req.url.startsWith(prefix)) {
-              await cache.delete(req);
-            }
-          }
-        }
-      } catch (ce) {
-        console.warn("Cache delete failed:", ce);
-      }
-      try {
-        const storageKey = `${LS_LOCATIONS_PREFIX}${bookItem.title.replace(/[^a-z0-9]/gi, "_")}`;
-        localStorage.removeItem(storageKey);
-      } catch (le) {
-        console.warn("Failed to remove locations:", le);
-      }
+      await deleteBookFromStorage(storage, bookItem.filePath);
+      await clearBookCache(bookItem.filePath, bookItem.title);
       await loadLibrary();
       if (currentBookName === bookItem.title) closeReader();
     } catch (e) {

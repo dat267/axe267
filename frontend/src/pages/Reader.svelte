@@ -24,7 +24,7 @@
 
   let storage;
   let readerElement = $state();
-  let renderer = null;
+  let renderer = $state(null);
   let tracks = $state([]);
   let collections = $state([]);
   let isLoading = $state(true);

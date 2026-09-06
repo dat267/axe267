@@ -12,11 +12,7 @@ vi.mock("firebase/auth", () => ({
   },
 }));
 
-import {
-  verifyBeforeUpdateEmail,
-  deleteUser,
-  reauthenticateWithCredential,
-} from "firebase/auth";
+import { verifyBeforeUpdateEmail, deleteUser, reauthenticateWithCredential } from "firebase/auth";
 
 beforeEach(() => {
   vi.clearAllMocks();

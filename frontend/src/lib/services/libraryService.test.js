@@ -116,9 +116,9 @@ describe("deleteBook", () => {
 describe("clearBookCache", () => {
   it("removes cache entries and localStorage locations", async () => {
     const mockDelete = vi.fn().mockResolvedValue(undefined);
-    const mockKeys = vi.fn().mockResolvedValue([
-      { url: `https://axe-local/${encodeURIComponent(FILE_PATH)}?url=some-url` },
-    ]);
+    const mockKeys = vi
+      .fn()
+      .mockResolvedValue([{ url: `https://axe-local/${encodeURIComponent(FILE_PATH)}?url=some-url` }]);
     globalThis.caches = {
       open: vi.fn().mockResolvedValue({
         keys: mockKeys,

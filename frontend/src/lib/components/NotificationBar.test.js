@@ -19,7 +19,6 @@ beforeEach(() => {
   vi.restoreAllMocks();
 });
 
-
 describe("NotificationBar", () => {
   it("renders theme and signout buttons", () => {
     render(NotificationBar, {

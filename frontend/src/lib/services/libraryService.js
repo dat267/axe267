@@ -14,14 +14,9 @@ export async function listBooks(storage) {
   const folderResults = await Promise.all(
     res.prefixes.map(async (folderRef) => {
       const folderRes = await listAll(folderRef);
-      const epubs = folderRes.items.filter((i) =>
-        i.name.toLowerCase().endsWith(".epub"),
-      );
+      const epubs = folderRes.items.filter((i) => i.name.toLowerCase().endsWith(".epub"));
       return {
-        collection:
-          epubs.length > 0
-            ? { id: folderRef.name, name: folderRef.name }
-            : null,
+        collection: epubs.length > 0 ? { id: folderRef.name, name: folderRef.name } : null,
         tracks: epubs.map((itemRef) => ({
           id: itemRef.fullPath,
           title: itemRef.name.replace(/\.[^/.]+$/, ""),
@@ -42,9 +37,7 @@ export async function listBooks(storage) {
     tracks.push(...result.tracks);
   }
 
-  const rootEpubs = res.items.filter((i) =>
-    i.name.toLowerCase().endsWith(".epub"),
-  );
+  const rootEpubs = res.items.filter((i) => i.name.toLowerCase().endsWith(".epub"));
   if (rootEpubs.length > 0) {
     collections.push({ id: "Books", name: "Books" });
     for (const itemRef of rootEpubs) {
@@ -78,10 +71,7 @@ export async function listBooks(storage) {
  * @returns {Promise<void>}
  */
 export async function uploadBook(storage, file, collection) {
-  const storagePath =
-    collection === "Books"
-      ? `books/${file.name}`
-      : `books/${collection}/${file.name}`;
+  const storagePath = collection === "Books" ? `books/${file.name}` : `books/${collection}/${file.name}`;
   const fileRef = ref(storage, storagePath);
   await uploadBytes(fileRef, file);
 }

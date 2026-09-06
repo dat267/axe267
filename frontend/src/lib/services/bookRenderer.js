@@ -52,10 +52,7 @@ export function createBookRenderer(readerElement, options = {}) {
       if (progressCallback) {
         progressCallback({
           cfi,
-          percent:
-            book.locations && book.locations.total > 0
-              ? book.locations.percentageFromCfi(cfi)
-              : 0,
+          percent: book.locations && book.locations.total > 0 ? book.locations.percentageFromCfi(cfi) : 0,
         });
       }
     });
@@ -189,10 +186,7 @@ export function createBookRenderer(readerElement, options = {}) {
       try {
         const cleanPath = (canonical || target).split("#")[0].replace(/^\//, "");
         const spineMatch = book.spine.spineItems.find(
-          (item) =>
-            item.href === cleanPath ||
-            item.href.endsWith(cleanPath) ||
-            cleanPath.endsWith(item.href),
+          (item) => item.href === cleanPath || item.href.endsWith(cleanPath) || cleanPath.endsWith(item.href),
         );
         if (spineMatch && (await tryDisplay(spineMatch.cfi || spineMatch.href))) return;
       } catch (err) {
@@ -208,16 +202,12 @@ export function createBookRenderer(readerElement, options = {}) {
     async search(query, concurrency = 4) {
       if (!book) return [];
       const { mapWithConcurrency } = await import("../utils/concurrency");
-      const results = await mapWithConcurrency(
-        book.spine.spineItems,
-        concurrency,
-        async (item) => {
-          await item.load(book.load.bind(book));
-          const res = await item.find(query);
-          item.unload();
-          return res;
-        },
-      );
+      const results = await mapWithConcurrency(book.spine.spineItems, concurrency, async (item) => {
+        await item.load(book.load.bind(book));
+        const res = await item.find(query);
+        item.unload();
+        return res;
+      });
       return results.flat();
     },
 

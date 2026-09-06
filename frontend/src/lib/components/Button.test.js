@@ -53,7 +53,14 @@ describe("Button", () => {
   it("calls onclick when clicked", async () => {
     const user = userEvent.setup();
     let clicked = false;
-    render(Button, { props: { children: text("Click"), onclick: () => { clicked = true; } } });
+    render(Button, {
+      props: {
+        children: text("Click"),
+        onclick: () => {
+          clicked = true;
+        },
+      },
+    });
     await user.click(screen.getByRole("button"));
     expect(clicked).toBe(true);
   });
@@ -61,7 +68,15 @@ describe("Button", () => {
   it("does not call onclick when disabled", async () => {
     const user = userEvent.setup();
     let clicked = false;
-    render(Button, { props: { disabled: true, children: text("Click"), onclick: () => { clicked = true; } } });
+    render(Button, {
+      props: {
+        disabled: true,
+        children: text("Click"),
+        onclick: () => {
+          clicked = true;
+        },
+      },
+    });
     await user.click(screen.getByRole("button"));
     expect(clicked).toBe(false);
   });

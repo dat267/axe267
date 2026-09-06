@@ -27,9 +27,7 @@ function mockCache() {
     const url = typeof key === "string" ? key : key?.url;
     store.delete(url);
   });
-  const mockKeys = vi.fn(async () =>
-    Array.from(store.keys()).map((k) => ({ url: k })),
-  );
+  const mockKeys = vi.fn(async () => Array.from(store.keys()).map((k) => ({ url: k })));
 
   globalThis.caches = {
     open: vi.fn(async () => ({

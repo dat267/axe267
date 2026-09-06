@@ -78,10 +78,7 @@ describe("createBookRenderer", () => {
     const renderer = createBookRenderer(el, { flow: "paginated" });
     await renderer.render(mockBook, null);
 
-    expect(mockBook.renderTo).toHaveBeenCalledWith(
-      el,
-      expect.objectContaining({ flow: "paginated" }),
-    );
+    expect(mockBook.renderTo).toHaveBeenCalledWith(el, expect.objectContaining({ flow: "paginated" }));
     expect(mockRendition.display).toHaveBeenCalled();
   });
 
@@ -102,9 +99,7 @@ describe("createBookRenderer", () => {
     await renderer.render(mockBook, null);
 
     // Simulate relocated event
-    const relocatedHandler = mockRendition.on.mock.calls.find(
-      (c) => c[0] === "relocated",
-    )?.[1];
+    const relocatedHandler = mockRendition.on.mock.calls.find((c) => c[0] === "relocated")?.[1];
     expect(relocatedHandler).toBeDefined();
     relocatedHandler({ start: { cfi: "epubcfi(/6/4)" } });
 
@@ -155,10 +150,7 @@ describe("createBookRenderer", () => {
 
     expect(mockRendition.destroy).toHaveBeenCalled();
     expect(mockBook.renderTo).toHaveBeenCalledTimes(2);
-    expect(mockBook.renderTo).toHaveBeenLastCalledWith(
-      el,
-      expect.objectContaining({ flow: "scrolled" }),
-    );
+    expect(mockBook.renderTo).toHaveBeenLastCalledWith(el, expect.objectContaining({ flow: "scrolled" }));
   });
 
   it("jumpTo() calls rendition.display with the target", async () => {

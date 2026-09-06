@@ -1,9 +1,4 @@
-import {
-  verifyBeforeUpdateEmail,
-  deleteUser,
-  reauthenticateWithCredential,
-  EmailAuthProvider,
-} from "firebase/auth";
+import { verifyBeforeUpdateEmail, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
 
 /**
  * Update the user's email address. Sends a verification email to the new address.

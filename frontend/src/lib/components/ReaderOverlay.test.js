@@ -71,9 +71,7 @@ describe("ReaderOverlay", () => {
 
   it("toggles toc panel when toc button is clicked", async () => {
     const user = userEvent.setup();
-    const toc = [
-      { label: "Chapter 1", target: "epubcfi(/6/2)", level: 0 },
-    ];
+    const toc = [{ label: "Chapter 1", target: "epubcfi(/6/2)", level: 0 }];
     render(ReaderOverlay, {
       props: {
         renderer: mockRenderer,
@@ -148,9 +146,7 @@ describe("ReaderOverlay", () => {
   it("calls onJumpTo when a toc item is clicked", async () => {
     const user = userEvent.setup();
     const onJumpTo = vi.fn();
-    const toc = [
-      { label: "Chapter 1", target: "epubcfi(/6/2)", level: 0 },
-    ];
+    const toc = [{ label: "Chapter 1", target: "epubcfi(/6/2)", level: 0 }];
     render(ReaderOverlay, {
       props: {
         renderer: mockRenderer,

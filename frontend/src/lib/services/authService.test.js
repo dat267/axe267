@@ -27,11 +27,7 @@ describe("signIn", () => {
     signInWithEmailAndPassword.mockResolvedValue({ user: mockUser });
     const result = await signIn(mockAuth, "test@example.com", "password");
     expect(result).toEqual({ success: true });
-    expect(signInWithEmailAndPassword).toHaveBeenCalledWith(
-      mockAuth,
-      "test@example.com",
-      "password",
-    );
+    expect(signInWithEmailAndPassword).toHaveBeenCalledWith(mockAuth, "test@example.com", "password");
   });
 
   it("returns error on invalid credentials", async () => {
@@ -46,11 +42,7 @@ describe("signUp", () => {
     createUserWithEmailAndPassword.mockResolvedValue({ user: mockUser });
     const result = await signUp(mockAuth, "new@example.com", "password");
     expect(result).toEqual({ success: true, user: mockUser });
-    expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(
-      mockAuth,
-      "new@example.com",
-      "password",
-    );
+    expect(createUserWithEmailAndPassword).toHaveBeenCalledWith(mockAuth, "new@example.com", "password");
   });
 
   it("returns error on existing email", async () => {
@@ -67,10 +59,7 @@ describe("resetPassword", () => {
     sendPasswordResetEmail.mockResolvedValue(undefined);
     const result = await resetPassword(mockAuth, "test@example.com");
     expect(result).toEqual({ success: true });
-    expect(sendPasswordResetEmail).toHaveBeenCalledWith(
-      mockAuth,
-      "test@example.com",
-    );
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith(mockAuth, "test@example.com");
   });
 
   it("returns error on failure", async () => {

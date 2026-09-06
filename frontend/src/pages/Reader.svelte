@@ -1,13 +1,11 @@
 <script>
   import { onMount, tick } from "svelte";
-  import ePub from "epubjs";
   import { auth, db, getStorageInstance } from "../lib/services/firebase";
   import { authStore } from "../lib/stores/authStore.svelte.js";
   import { themeStore } from "../lib/stores/themeStore.svelte.js";
   import { ICONS } from "../lib/utils/icons";
   import {
     EPUB_CACHE_NAME,
-    LOCATIONS_GENERATE_COUNT,
     SEARCH_CONCURRENCY,
     MAX_UPLOAD_SIZE_MB,
     LS_READER_SESSION,
@@ -15,8 +13,8 @@
     LS_LIBRARY_CACHE,
     LS_LOCATIONS_PREFIX,
   } from "../lib/utils/constants";
-  import { mapWithConcurrency } from "../lib/utils/concurrency";
   import { loadBookData } from "../lib/services/bookLoader";
+  import { createBookRenderer } from "../lib/services/bookRenderer";
   import { ref, getDownloadURL, deleteObject, listAll, uploadBytes } from "firebase/storage";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
@@ -26,8 +24,7 @@
 
   let storage;
   let readerElement = $state();
-  let rendition;
-  let book;
+  let renderer = null;
   let tracks = $state([]);
   let collections = $state([]);
   let isLoading = $state(true);
@@ -172,85 +169,23 @@
   }
 
   function applyTypography() {
-    if (!rendition) return;
+    if (!renderer?.rendition) return;
     fontSize = Math.min(96, Math.max(8, Number(fontSize) || 16));
     lineHeight = Math.min(3.0, Math.max(1.0, Number(lineHeight) || 1.5));
-    rendition.themes.register("custom", {
-      "html": { "background": "transparent !important" },
-      "body": { "color": themeStore.darkMode ? "#e5e7eb" : "#111827", "background": "transparent !important" },
-      "p, div, span, section, li": {
-        "font-family": `${fontFamily} !important`,
-        "line-height": `${lineHeight} !important`,
-        "font-size": `${fontSize}px !important`,
-        "color": "inherit !important"
-      }
+    renderer.applyTypography({
+      fontSize,
+      fontFamily,
+      lineHeight,
+      isDarkMode: themeStore.darkMode,
     });
-    rendition.themes.select("custom");
-    rendition.themes.font(fontFamily);
-    rendition.themes.fontSize(`${fontSize}px`);
     localStorage.setItem(LS_READER_SETTINGS, JSON.stringify({ fontSize, fontFamily, lineHeight, flow }));
   }
 
   $effect(() => { if (themeStore.darkMode !== undefined) applyTypography(); });
-  function flattenToc(items, level = 0) {
-    const flat = [];
-    if (!book) return flat;
-    
-    for (const item of items) {
-      const cleanLabel = item.label ? item.label.trim().replace(/\s+/g, " ") : "";
-      let target = item.cfi || item.href;
-
-      // Efficiency: Pre-resolve relative paths to CFIs or canonical paths
-      if (!item.cfi && item.href) {
-        try {
-          const canonical = book.canonical(item.href);
-          // Look up in spine to get a CFI if possible
-          const section = book.spine.get(canonical.replace(/^\//, ""));
-          target = section?.cfi || canonical || item.href;
-        } catch (_e) {
-          target = item.href;
-        }
-      }
-
-      flat.push({ label: cleanLabel, target, level });
-      if (item.subitems && item.subitems.length > 0) {
-        flat.push(...flattenToc(item.subitems, level + 1));
-      }
-    }
-    return flat;
-  }
   function attachRenditionEvents(bookTitle) {
-    if (!rendition) return;
-    rendition.hooks.content.register((contents) => {
-      if (!rendition) return;
-      const doc = contents.document;
-      const style = doc.createElement("style");
-      style.textContent = `
-        ::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: ${themeStore.darkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"};
-          border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: ${themeStore.darkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)"};
-        }
-        html {
-          scrollbar-width: thin;
-          scrollbar-color: ${themeStore.darkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)"} transparent;
-        }
-      `;
-      doc.head.appendChild(style);
-    });
-    rendition.on("relocated", (location) => {
-      if (!book || !rendition) return;
-      const cfi = location.start.cfi;
-      if (book.locations && book.locations.total > 0) progress = book.locations.percentageFromCfi(cfi);
+    if (!renderer?.rendition) return;
+    renderer.onProgress(({ cfi, percent }) => {
+      progress = percent;
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(async () => {
         if (auth.currentUser) {
@@ -261,32 +196,13 @@
     });
   }
   async function applyFlow() {
-    if (!book || !rendition) return;
-    const currentCfi = rendition.location?.start?.cfi;
-    rendition.destroy();
-    rendition = null;
-
-    try {
-      rendition = book.renderTo(readerElement, {
-        width: "100%",
-        height: "100%",
-        flow,
-        manager: flow === "scrolled" ? "continuous" : "default",
-        spread: flow === "scrolled" ? "none" : "auto"
-      });
-
-      if (currentCfi) {
-        await rendition.display(currentCfi);
-      } else {
-        await rendition.display();
-      }
-
-      applyTypography();
-    } catch (e) {
-      console.warn("Flow switch display failed:", e);
-      try { if (rendition) await rendition.display(); } catch (e2) { console.error("Flow switch fallback failed:", e2); }
-    }
-
+    if (!renderer?.book || !renderer?.rendition) return;
+    await renderer.switchFlow(flow, {
+      fontSize,
+      fontFamily,
+      lineHeight,
+      isDarkMode: themeStore.darkMode,
+    });
     attachRenditionEvents(currentBookName);
   }
   async function openBook(title, filePath) {
@@ -352,15 +268,20 @@
         if (docSnap.exists()) savedCfi = docSnap.data().cfi;
       }
 
-      if (savedCfi) {
-        await rendition.display(savedCfi);
-      } else {
-        await rendition.display();
-      }
+      // Create renderer and render the book
+      renderer = createBookRenderer(readerElement, {
+        flow,
+        isDarkMode: themeStore.darkMode,
+      });
+
+      renderer.onMetadata((m) => { metadata = m; });
+      renderer.onToc((items) => { toc = items; });
+
+      await renderer.render(bookData, savedCfi);
     } catch (e) {
       console.warn("Initial display failed:", e);
       try {
-        if (rendition) await rendition.display();
+        if (renderer?.rendition) await renderer.rendition.display();
       } catch (e2) {
         console.error("Fallback display failed:", e2);
       }
@@ -370,40 +291,18 @@
 
     applyTypography();
 
-    book.loaded.metadata.then((m) => metadata = m);
-    book.loaded.navigation.then((nav) => toc = flattenToc(nav.toc || []));
-    
-    generateLocations(title);
+    renderer.generateLocations(title);
 
     attachRenditionEvents(title);
   }
 
   async function generateLocations(title) {
-    try {
-      await book?.ready;
-      if (!book) return;
-      const storageKey = `${LS_LOCATIONS_PREFIX}${title.replace(/[^a-z0-9]/gi, "_")}`;
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        await book.locations.load(saved);
-      } else {
-        await book.locations.generate(LOCATIONS_GENERATE_COUNT);
-        if (!book) return;
-        try {
-          localStorage.setItem(storageKey, book.locations.save());
-        } catch (le) {
-          console.warn("Save locations failed:", le);
-        }
-      }
-      if (!book) return;
-      if (rendition?.location) progress = book.locations.percentageFromCfi(rendition.location.start.cfi);
-    } catch (e) {
-      console.warn("Location generation failed:", e);
-    }
+    if (!renderer) return;
+    await renderer.generateLocations(title);
   }
 
-  function next() { if (rendition) rendition.next(); }
-  function prev() { if (rendition) rendition.prev(); }
+  function next() { renderer?.next(); }
+  function prev() { renderer?.prev(); }
   
   function closeReader(triggerHistory = true) {
     isReaderOpen = false;
@@ -411,28 +310,18 @@
     if (triggerHistory && window.location.search.includes("book=")) {
       history.back();
     }
-    if (book) {
-      book.destroy();
-      book = null;
-      rendition = null;
+    if (renderer) {
+      renderer.destroy();
+      renderer = null;
     }
   }
 
   async function performSearch() {
-    if (!gotoSearch || !book) return;
+    if (!gotoSearch || !renderer?.book) return;
     isSearching = true; hasSearched = true; searchResults = [];
     try {
-      const results = await mapWithConcurrency(
-        book.spine.spineItems,
-        SEARCH_CONCURRENCY,
-        async (item) => {
-          await item.load(book.load.bind(book));
-          const res = await item.find(gotoSearch);
-          item.unload();
-          return res;
-        },
-      );
-      searchResults = results.flat();
+      const results = await renderer.search(gotoSearch, SEARCH_CONCURRENCY);
+      searchResults = results;
     } catch (err) {
       console.error("Search failed:", err);
     } finally {
@@ -441,49 +330,11 @@
   }
 
   async function jumpTo(target) {
-    if (!rendition || !target || !book) return;
-    
-    const tryDisplay = async (t) => {
-      try {
-        await rendition.display(t);
-        showToc = false;
-        showGoTo = false;
-        showSettings = false;
-        return true;
-      } catch (_err) {
-        return false;
-      }
-    };
-
-    // 1. Try pre-resolved target (Direct CFI or canonical path)
-    if (await tryDisplay(target)) return;
-
-    // 2. Fallback: Robust resolution (for dynamic links or edge cases)
-    console.warn("Direct jump failed, trying fallback resolution:", target);
-    if (target.startsWith('/') && await tryDisplay(target.substring(1))) return;
-
-    const canonical = book.canonical(target);
-    if (canonical && canonical !== target) {
-      if (await tryDisplay(canonical)) return;
-      if (canonical.startsWith('/') && await tryDisplay(canonical.substring(1))) return;
-    }
-
-    try {
-      const cleanPath = (canonical || target).split('#')[0].replace(/^\//, "");
-      const spineMatch = book.spine.spineItems.find(item => 
-        item.href === cleanPath || 
-        item.href.endsWith(cleanPath) ||
-        cleanPath.endsWith(item.href)
-      );
-
-      if (spineMatch) {
-        if (await tryDisplay(spineMatch.cfi || spineMatch.href)) return;
-      }
-    } catch (err) {
-      console.warn("Spine fallback failed:", err);
-    }
-
-    console.error("All jump attempts failed for target:", target);
+    if (!renderer) return;
+    await renderer.jumpTo(target);
+    showToc = false;
+    showGoTo = false;
+    showSettings = false;
   }
 
   let isDeleting = $state(false);

@@ -16,6 +16,7 @@
   import ReaderOverlay from "../lib/components/ReaderOverlay.svelte";
   import { ref, getDownloadURL } from "firebase/storage";
   import { listBooks, uploadBook, deleteBook as deleteBookFromStorage, clearBookCache } from "../lib/services/libraryService";
+  import { getBookParam, stripBookParam } from "../lib/utils/readerUrl";
   import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
   import Button from "../lib/components/Button.svelte";
   import Modal from "../lib/components/Modal.svelte";
@@ -30,17 +31,8 @@
   let isLoading = $state(true);
   let currentBookName = $state("");
 
-  // If URL has ?book=, open reader immediately so template renders the reader
-  // overlay instead of flashing the book list.
-  const initialBookPath = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search).get("book")
-    : null;
-  const initialTitle = initialBookPath
-    ? decodeURIComponent(initialBookPath).split("/").pop()?.replace(/\.[^/.]+$/, "") || ""
-    : "";
-  let isReaderOpen = $state(!!initialBookPath);
-  let isBookLoading = $state(!!initialBookPath);
-  currentBookName = initialTitle;
+  let isReaderOpen = $state(false);
+  let isBookLoading = $state(false);
   let metadata = $state(null);
   let toc = $state([]);
   let progress = $state(0);
@@ -160,7 +152,7 @@
       console.warn("Failed to get download URL:", ue);
     }
     localStorage.setItem(LS_READER_SESSION, JSON.stringify({ name: title, url, filePath }));
-    if (!window.location.search.includes("book=")) {
+    if (!getBookParam()) {
       history.pushState({ reader: true, book: filePath }, "", `?book=${encodeURIComponent(filePath)}`);
     }
     await tick();
@@ -217,7 +209,7 @@
   function closeReader(triggerHistory = true) {
     isReaderOpen = false;
     localStorage.removeItem(LS_READER_SESSION);
-    if (triggerHistory && window.location.search.includes("book=")) {
+    if (triggerHistory && getBookParam()) {
       history.back();
     }
     if (renderer) {
@@ -263,11 +255,10 @@
         console.error("Failed to load Firebase storage module:", err);
       }
 
-      // If a book param is present in the URL, open it immediately.
-      // The reader overlay is already rendered (isReaderOpen set at init).
-      if (initialBookPath) {
-        openBook(initialTitle, decodeURIComponent(initialBookPath));
-      }
+      // A `?book=` param in the URL at boot is a stale remnant of a previous
+      // session (e.g. a reload). Books open only via the list; strip the param
+      // and show the book listing.
+      stripBookParam();
 
       // Load library in background (for the book list view).
       const cachedLib = localStorage.getItem(LS_LIBRARY_CACHE);
@@ -295,7 +286,7 @@
 
     const handlePopState = () => {
       showUploadModal = window.location.search.includes("upload=1");
-      const hasBook = window.location.search.includes("book=");
+      const hasBook = !!getBookParam();
       if (isReaderOpen && !hasBook) closeReader(false);
     };
     window.addEventListener("popstate", handlePopState);

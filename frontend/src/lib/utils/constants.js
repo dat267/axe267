@@ -6,7 +6,6 @@ export const SEARCH_CONCURRENCY = 4;
 
 export const MAX_UPLOAD_SIZE_MB = 100;
 
-export const LS_READER_SESSION = "axe_reader_session";
 export const LS_READER_SETTINGS = "axe_reader_settings";
 export const LS_LIBRARY_CACHE = "axe_library_cache";
 

@@ -7,7 +7,6 @@
   import {
     SEARCH_CONCURRENCY,
     MAX_UPLOAD_SIZE_MB,
-    LS_READER_SESSION,
     LS_READER_SETTINGS,
     LS_LIBRARY_CACHE,
   } from "../lib/utils/constants";
@@ -16,7 +15,7 @@
   import ReaderOverlay from "../lib/components/ReaderOverlay.svelte";
   import { ref, getDownloadURL } from "firebase/storage";
   import { listBooks, uploadBook, deleteBook as deleteBookFromStorage, clearBookCache } from "../lib/services/libraryService";
-  import { getBookParam, stripBookParam } from "../lib/utils/readerUrl";
+  import { hasBookParam, pushBookState, popBookState, stripBookParam } from "../lib/utils/readerUrl";
   import { saveProgress, loadProgress } from "../lib/services/progressService";
   import Button from "../lib/components/Button.svelte";
   import Modal from "../lib/components/Modal.svelte";
@@ -150,10 +149,7 @@
     } catch (ue) {
       console.warn("Failed to get download URL:", ue);
     }
-    localStorage.setItem(LS_READER_SESSION, JSON.stringify({ name: title, url, filePath }));
-    if (!getBookParam()) {
-      history.pushState({ reader: true, book: filePath }, "", `?book=${encodeURIComponent(filePath)}`);
-    }
+    pushBookState(filePath);
     await tick();
     let bookData;
     try {
@@ -204,10 +200,7 @@
   
   function closeReader(triggerHistory = true) {
     isReaderOpen = false;
-    localStorage.removeItem(LS_READER_SESSION);
-    if (triggerHistory && getBookParam()) {
-      history.back();
-    }
+    popBookState(triggerHistory);
     if (renderer) {
       renderer.destroy();
       renderer = null;
@@ -282,8 +275,7 @@
 
     const handlePopState = () => {
       showUploadModal = window.location.search.includes("upload=1");
-      const hasBook = !!getBookParam();
-      if (isReaderOpen && !hasBook) closeReader(false);
+      if (isReaderOpen && !hasBookParam()) closeReader(false);
     };
     window.addEventListener("popstate", handlePopState);
     return () => { renderer?.destroy(); window.removeEventListener("popstate", handlePopState); };

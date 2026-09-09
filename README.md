@@ -112,9 +112,8 @@ The application maintains the following keys in the client's `localStorage` for 
 | Key Name | Data Type / Structure | Purpose / Lifecycle |
 | :--- | :--- | :--- |
 | `axe_reader_settings` | `JSON Object` `{ fontSize, fontFamily, lineHeight, flow }` | Remembers typographic settings and active viewport layout (pages/scroll). Saved on adjustment, loaded on Mount. |
-| `axe_reader_session` | `JSON Object` `{ name, url, filePath }` | Tracks the active book open in the Reader. Removed when the user exits the book. |
 | `axe_library_cache` | `JSON Object` `{ collections: [...], tracks: [...] }` | Stores the library catalog layout and file entries. Instantly loaded on Mount before background sync. |
-| `axe_locations_[title]` | `String` (EPUB.js locations map) | Caches pre-computed page coordinates for the specific book to bypass events loop rendering delays. |
+| `axe-locations-[title]` | `String` (EPUB.js locations map) | Caches pre-computed page coordinates for the specific book to bypass events loop rendering delays. |
 
 ### Maintenance Guidelines
 * **Always run the development server during updates:** `npm run dev`.

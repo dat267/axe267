@@ -1,4 +1,5 @@
 import { verifyBeforeUpdateEmail, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { runAuthOp } from "../utils/authResult";
 
 /**
  * Update the user's email address. Sends a verification email to the new address.
@@ -7,16 +8,8 @@ import { verifyBeforeUpdateEmail, deleteUser, reauthenticateWithCredential, Emai
  * @param {string} newEmail - The new email address
  * @returns {Promise<{success?: boolean, error?: string, requiresReauth?: boolean}>}
  */
-export async function updateEmail(user, newEmail) {
-  try {
-    await verifyBeforeUpdateEmail(user, newEmail);
-    return { success: true };
-  } catch (e) {
-    if (e.code === "auth/requires-recent-login") {
-      return { error: e.code, requiresReauth: true };
-    }
-    return { error: e.code || e.message };
-  }
+export function updateEmail(user, newEmail) {
+  return runAuthOp(() => verifyBeforeUpdateEmail(user, newEmail), { reauthable: true });
 }
 
 /**
@@ -25,16 +18,8 @@ export async function updateEmail(user, newEmail) {
  * @param {object} user - Firebase Auth user
  * @returns {Promise<{success?: boolean, error?: string, requiresReauth?: boolean}>}
  */
-export async function deleteAccount(user) {
-  try {
-    await deleteUser(user);
-    return { success: true };
-  } catch (e) {
-    if (e.code === "auth/requires-recent-login") {
-      return { error: e.code, requiresReauth: true };
-    }
-    return { error: e.code || e.message };
-  }
+export function deleteAccount(user) {
+  return runAuthOp(() => deleteUser(user), { reauthable: true });
 }
 
 /**
@@ -44,12 +29,9 @@ export async function deleteAccount(user) {
  * @param {string} password - The user's password
  * @returns {Promise<{success?: boolean, error?: string}>}
  */
-export async function reauthenticate(user, password) {
-  try {
+export function reauthenticate(user, password) {
+  return runAuthOp(() => {
     const credential = EmailAuthProvider.credential(user.email, password);
-    await reauthenticateWithCredential(user, credential);
-    return { success: true };
-  } catch (e) {
-    return { error: e.code || e.message };
-  }
+    return reauthenticateWithCredential(user, credential);
+  });
 }

@@ -1,4 +1,6 @@
 import ePub from "epubjs";
+import { locationsStorageKey } from "../utils/readerKeys";
+import { LOCATIONS_GENERATE_COUNT } from "../utils/constants";
 
 /**
  * Create a book renderer that manages the epubjs book and rendition lifecycle.
@@ -219,14 +221,13 @@ export function createBookRenderer(readerElement, options = {}) {
         await book?.ready;
         if (!book) return;
 
-        const LS_LOCATIONS_PREFIX = "axe-locations-";
-        const storageKey = `${LS_LOCATIONS_PREFIX}${title.replace(/[^a-z0-9]/gi, "_")}`;
+        const storageKey = locationsStorageKey(title);
         const saved = localStorage.getItem(storageKey);
 
         if (saved) {
           await book.locations.load(saved);
         } else {
-          await book.locations.generate(1600);
+          await book.locations.generate(LOCATIONS_GENERATE_COUNT);
           if (!book) return;
           try {
             localStorage.setItem(storageKey, book.locations.save());

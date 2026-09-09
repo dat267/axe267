@@ -1,4 +1,4 @@
-import { buildCacheKey, cachePrefix, isStaleCacheEntry } from "../utils/readerCache";
+import { buildCacheKey, cachePrefix, isStaleCacheEntry } from "../utils/readerKeys";
 import { EPUB_CACHE_NAME } from "../utils/constants";
 
 /**

@@ -1,5 +1,6 @@
 import { ref, listAll, deleteObject, uploadBytes } from "firebase/storage";
 import { EPUB_CACHE_NAME } from "../utils/constants";
+import { cachePrefix, locationsStorageKey } from "../utils/readerKeys";
 
 /**
  * List all EPUB books in Firebase Storage under `books/`.
@@ -99,7 +100,7 @@ export async function clearBookCache(filePath, title) {
 
   if (canCache) {
     try {
-      const prefix = `https://axe-local/${encodeURIComponent(filePath)}`;
+      const prefix = cachePrefix(filePath);
       const cache = await caches.open(EPUB_CACHE_NAME);
       const keys = await cache.keys();
       for (const req of keys) {
@@ -113,9 +114,7 @@ export async function clearBookCache(filePath, title) {
   }
 
   try {
-    const LS_LOCATIONS_PREFIX = "axe-locations-";
-    const storageKey = `${LS_LOCATIONS_PREFIX}${title.replace(/[^a-z0-9]/gi, "_")}`;
-    localStorage.removeItem(storageKey);
+    localStorage.removeItem(locationsStorageKey(title));
   } catch (le) {
     console.warn("Failed to remove locations:", le);
   }

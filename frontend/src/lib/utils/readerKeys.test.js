@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { buildCacheKey, cachePrefix, isStaleCacheEntry } from "./readerCache";
+import { buildCacheKey, cachePrefix, isStaleCacheEntry, locationsStorageKey } from "./readerKeys";
 
-describe("readerCache cache keys", () => {
+describe("readerKeys cache keys", () => {
   it("builds a cache key embedding file path and download URL", () => {
     const key = buildCacheKey("books/My Book.epub", "https://example.com/signed-url");
     expect(key).toBe("https://axe-local/books%2FMy%20Book.epub?url=https%3A%2F%2Fexample.com%2Fsigned-url");
@@ -18,5 +18,11 @@ describe("readerCache cache keys", () => {
     expect(isStaleCacheEntry(current, stale, "books/a.epub")).toBe(true);
     expect(isStaleCacheEntry(current, other, "books/a.epub")).toBe(false);
     expect(isStaleCacheEntry(current, current, "books/a.epub")).toBe(false);
+  });
+});
+
+describe("locationsStorageKey", () => {
+  it("derives a stable localStorage key from the title", () => {
+    expect(locationsStorageKey("My Book: Vol. 2!")).toBe("axe-locations-My_Book__Vol__2_");
   });
 });

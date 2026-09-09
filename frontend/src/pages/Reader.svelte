@@ -1,6 +1,6 @@
 <script>
   import { onMount, tick } from "svelte";
-  import { auth, db, getStorageInstance } from "../lib/services/firebase";
+  import { auth, getStorageInstance } from "../lib/services/firebase";
   import { authStore } from "../lib/stores/authStore.svelte.js";
   import { themeStore } from "../lib/stores/themeStore.svelte.js";
   import { ICONS } from "../lib/utils/icons";
@@ -17,7 +17,7 @@
   import { ref, getDownloadURL } from "firebase/storage";
   import { listBooks, uploadBook, deleteBook as deleteBookFromStorage, clearBookCache } from "../lib/services/libraryService";
   import { getBookParam, stripBookParam } from "../lib/utils/readerUrl";
-  import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+  import { saveProgress, loadProgress } from "../lib/services/progressService";
   import Button from "../lib/components/Button.svelte";
   import Modal from "../lib/components/Modal.svelte";
   import Input from "../lib/components/Input.svelte";
@@ -123,8 +123,7 @@
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(async () => {
         if (auth.currentUser) {
-          const progressId = `${auth.currentUser.uid}_${bookTitle.replace(/[^a-z0-9]/gi, "_")}`;
-          await setDoc(doc(db, "user_progress", progressId), { uid: auth.currentUser.uid, cfi, updatedAt: serverTimestamp() }, { merge: true });
+          await saveProgress(auth.currentUser.uid, bookTitle, cfi);
         }
       }, 3000);
     });
@@ -168,10 +167,7 @@
     let savedCfi = null;
     try {
       if (auth.currentUser) {
-        const progressId = `${auth.currentUser.uid}_${title.replace(/[^a-z0-9]/gi, "_")}`;
-        const docRef = doc(db, "user_progress", progressId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) savedCfi = docSnap.data().cfi;
+        savedCfi = await loadProgress(auth.currentUser.uid, title);
       }
 
       // Create renderer and render the book (renderer owns ePub creation,

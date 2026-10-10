@@ -40,7 +40,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/notify", authMiddleware(verifier, func(w http.ResponseWriter, r *http.Request) {
-		handleNotify(ctx, store, w, r)
+		handleNotify(store, w, r)
 	}))
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		handleHealth(projectID, w, r)

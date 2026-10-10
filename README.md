@@ -6,12 +6,14 @@ A professional, responsive notification dashboard and minimalist EPUB reader bui
 
 ## Quick Start (Local Development)
 
+Use Node.js 24 LTS (see `.node-version`), Go 1.24 or newer, and Application Default Credentials for local backend access. Firestore rule tests also require Java 21 or newer. npm and the committed `package-lock.json` files are the source of truth for dependency installs, including release builds. Bun is only required to compile frontend server binaries.
+
 1.  **Clone & Install**
     ```bash
     git clone https://github.com/dat267/axe267.git
     cd axe267
-    npm install
-    cd frontend && bun install && cd ..
+    npm ci
+    npm ci --prefix frontend
     ```
 
 2.  **Environment Setup**
@@ -33,9 +35,22 @@ A professional, responsive notification dashboard and minimalist EPUB reader bui
 
 ---
 
+## Verification
+
+```bash
+npm test            # Frontend unit/component tests and Go tests with the race detector
+npm run lint        # Svelte diagnostics, ESLint, Prettier, and go vet
+npm run build       # Production frontend build
+npm run test:rules  # Firestore authorization tests against the local emulator
+```
+
+The Go race detector requires CGO and a C compiler. Rule tests use the `demo-axe` project, not production, and a pinned Firebase CLI. Unit tests do not require running the application servers. Pull requests, deployments, and releases run the same checks through `.github/workflows/ci.yml`.
+
+See [docs/modernization-review.md](docs/modernization-review.md) for review findings and follow-up work.
+
 ## Reader Architecture & Developer Guide
 
-This section serves as your complete developer reference for the Svelte-based EPUB reader inside `src/pages/Reader.svelte`. Returning to this codebase months from now, this guide will instantly re-orient you on the design decisions, caching structures, layout optimizations, and state management systems in play.
+This section serves as your complete developer reference for the Svelte-based EPUB reader inside `frontend/src/pages/Reader.svelte`. Returning to this codebase months from now, this guide will instantly re-orient you on the design decisions, caching structures, layout optimizations, and state management systems in play.
 
 ### High-Level System Architecture
 
@@ -79,7 +94,8 @@ graph TD
 * **Goal:** Eliminate recurring Google Cloud Storage (GCS) bandwidth egress fees ($0.12/GB to the internet) and enable offline reading.
 * **Mechanism:** Integrated the browser's native **Cache API** (`axe-epub-cache-v1`) to store EPUBs as binary `Blob`s.
 * **Cache Key Structure:** `https://axe-local/[filePath]?url=[signedDownloadUrl]`
-* **Zero-Latency Validation:** Rather than making a separate network metadata check on GCS, we leverage the Firebase Storage signed download URL itself. When a file is overwritten or modified on the server, Firebase rotates its cryptographic security token (the `&token=...` parameter changes). The changed URL creates a cache key mismatch, prompting the app to evict the stale cache, fetch the updated file, and save it automatically.
+* **URL-Based Validation:** The Firebase Storage download URL, including its token, identifies a cached version without a separate metadata check. A changed URL triggers a fresh download. The new version is cached before stale entries are removed. Token rotation is not guaranteed on every overwrite, so an unchanged URL can retain old content; explicit cache invalidation is needed in that case.
+* **Cache Write Failures:** A downloaded book remains readable even if local caching fails. The loader does not download it again just because the cache is full, and retains the previous offline copy if storing the replacement fails.
 * **Offline Resiliency:** If GCS network requests fail (e.g., the device is offline), the app searches the local Cache API for the matching file path prefix and loads the last-cached version.
 
 #### 2. High-Performance Library Syncing
@@ -116,7 +132,7 @@ The application maintains the following keys in the client's `localStorage` for 
 | `axe-locations-[title]` | `String` (EPUB.js locations map) | Caches pre-computed page coordinates for the specific book to bypass events loop rendering delays. |
 
 ### Maintenance Guidelines
-* **Always run the development server during updates:** `npm run dev`.
+* **Verify updates:** Run the verification commands above. Use `npm run dev` for manual UI checks.
 * **Remove comments & blank lines inside modified code blocks:** To keep snippets clean, concise, and aligned with personal preferences, ensure any new script updates are written without verbose commentary and minimal spacing.
 * **Zero Egress Mandate:** Never bypass the Cache API when fetching books. If you alter how files are fetched, ensure the signature-token validation (`url` query parameter) remains intact to prevent billing surprises on GCS.
 
@@ -149,11 +165,11 @@ The project includes a GitHub Action in `.github/workflows/deploy.yml` that auto
 ---
 
 ## Tech Stack
-- **Frontend:** Svelte 5 (Runes), JavaScript, Vite, Bun
+- **Frontend:** Svelte 5 (Runes), JavaScript, Vite, npm; Bun for server binary compilation
 - **Backend:** Go (Cloud Run), Firestore
 - **Hosting:** Firebase Hosting
 - **Styling:** Tailwind CSS v4
-- **Testing:** Vitest
+- **Testing:** Vitest, Go race detector, Firestore Emulator, Playwright
 - **CI/CD:** GitHub Actions
 
 ## Releases

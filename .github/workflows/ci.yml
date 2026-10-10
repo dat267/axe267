@@ -1,0 +1,42 @@
+name: Validate
+
+on:
+  pull_request:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install locked dependencies
+        run: |
+          npm ci
+          npm ci --prefix frontend
+      - name: Unit tests and Go race detector
+        run: npm test
+      - name: Lint and static analysis
+        run: npm run lint
+      - name: Build frontend
+        run: npm run build
+      - name: Firestore authorization tests
+        run: npm run test:rules

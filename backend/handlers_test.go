@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 )
 
@@ -178,6 +180,7 @@ func TestAuthMiddlewareOptions(t *testing.T) {
 type mockStore struct {
 	createID    string
 	createErr   error
+	createCtx   context.Context
 	created     []Notification
 	deleteCount int
 	deleteErr   error
@@ -185,6 +188,7 @@ type mockStore struct {
 }
 
 func (m *mockStore) Create(ctx context.Context, userEmail string, notif Notification) (string, error) {
+	m.createCtx = ctx
 	m.created = append(m.created, notif)
 	if m.createErr != nil {
 		return "", m.createErr
@@ -214,7 +218,7 @@ func doNotify(t *testing.T, store NotificationStore, method, body string, xff st
 	}
 	req.Header.Set("X-User-Email", "me@example.com")
 	rec := httptest.NewRecorder()
-	handleNotify(context.Background(), store, rec, req)
+	handleNotify(store, rec, req)
 	return rec
 }
 
@@ -240,6 +244,19 @@ func TestHandleNotifyPost(t *testing.T) {
 	}
 }
 
+func TestHandleNotifyPostUsesRequestContext(t *testing.T) {
+	store := &mockStore{createID: "doc123"}
+	body := `{"type":"info","source":"cli","title":"Deploy","message":"done","category":"system"}`
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req := httptest.NewRequest("POST", "/api/notify", strings.NewReader(body)).WithContext(ctx)
+	req.RemoteAddr = "198.51.100.12:1234"
+	handleNotify(store, httptest.NewRecorder(), req)
+	if store.createCtx == nil || store.createCtx.Err() != context.Canceled {
+		t.Fatal("store.Create did not receive the canceled request context")
+	}
+}
+
 func TestHandleNotifyPostValidationError(t *testing.T) {
 	store := &mockStore{}
 	rec := doNotify(t, store, "POST", `{"type":"info"}`, "")
@@ -248,6 +265,22 @@ func TestHandleNotifyPostValidationError(t *testing.T) {
 	}
 	if len(store.created) != 0 {
 		t.Fatal("store.Create should not be called for invalid input")
+	}
+}
+
+func TestHandleNotifyPostRejectsTrailingData(t *testing.T) {
+	body := `{"type":"info","source":"cli","title":"Deploy","message":"done","category":"system"}`
+	for _, suffix := range []string{`{}`, `garbage`, strings.Repeat(" ", maxBodySize)} {
+		t.Run(suffix[:min(len(suffix), 7)], func(t *testing.T) {
+			store := &mockStore{}
+			rec := doNotify(t, store, "POST", body+suffix, "198.51.100.13")
+			if rec.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want 400", rec.Code)
+			}
+			if len(store.created) != 0 {
+				t.Fatal("store.Create should not be called for trailing data")
+			}
+		})
 	}
 }
 
@@ -348,6 +381,26 @@ func TestClientIPFallsBackToRemoteAddr(t *testing.T) {
 	req.RemoteAddr = "203.0.113.99:5678"
 	if got := clientIP(req); got != "203.0.113.99" {
 		t.Fatalf("clientIP() = %q, want RemoteAddr-derived IP %q", got, "203.0.113.99")
+	}
+}
+
+func TestIsRateLimitedConcurrent(t *testing.T) {
+	const ip = "198.51.100.11"
+	t.Cleanup(func() { rateLimiters.Delete(ip) })
+	var allowed atomic.Int32
+	var requests sync.WaitGroup
+	for range 120 {
+		requests.Add(1)
+		go func() {
+			defer requests.Done()
+			if !isRateLimited(ip) {
+				allowed.Add(1)
+			}
+		}()
+	}
+	requests.Wait()
+	if got := allowed.Load(); got != 60 {
+		t.Fatalf("allowed %d concurrent requests, want 60", got)
 	}
 }
 

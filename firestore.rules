@@ -18,18 +18,24 @@ service cloud.firestore {
     // API Keys: Users can only manage their own keys
     match /api_keys/{keyId} {
       allow read, list, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId &&
+        request.auth.token.email == request.resource.data.userEmail;
     }
 
     // User Progress: Users can manage their own reading progress for books
     match /user_progress/{progressId} {
-      allow read, delete: if request.auth != null &&
-        (
-          ('uid' in resource.data && resource.data.uid == request.auth.uid) ||
-          (!('uid' in resource.data) && request.auth.uid == progressId.split('_')[0])
-        );
+      function isOwner() {
+        return request.auth != null &&
+          (
+            ('uid' in resource.data && resource.data.uid == request.auth.uid) ||
+            (!('uid' in resource.data) && request.auth.uid == progressId.split('_')[0])
+          );
+      }
+      allow read, delete: if isOwner();
+      allow get: if request.auth != null && request.auth.uid == progressId.split('_')[0] &&
+        !exists(/databases/$(database)/documents/user_progress/$(progressId));
       allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-      allow update: if request.auth != null && request.resource.data.uid == request.auth.uid;
+      allow update: if isOwner() && request.resource.data.uid == request.auth.uid;
     }
   }
 }

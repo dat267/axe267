@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -40,8 +40,8 @@ type ipLimiter struct {
 	window time.Duration
 }
 
-func getRateLimiter(ip string, limit int, window time.Duration) *ipLimiter {
-	val, _ := rateLimiters.LoadOrStore(ip, &ipLimiter{limit: limit, window: window, last: time.Now()})
+func isRateLimited(ip string) bool {
+	val, _ := rateLimiters.LoadOrStore(ip, &ipLimiter{limit: 60, window: time.Minute, last: time.Now()})
 	lm := val.(*ipLimiter)
 	rateLimitMu.Lock()
 	defer rateLimitMu.Unlock()
@@ -50,11 +50,6 @@ func getRateLimiter(ip string, limit int, window time.Duration) *ipLimiter {
 		lm.last = time.Now()
 	}
 	lm.count++
-	return lm
-}
-
-func isRateLimited(ip string) bool {
-	lm := getRateLimiter(ip, 60, time.Minute)
 	return lm.count > lm.limit
 }
 
@@ -102,7 +97,8 @@ func clientIP(r *http.Request) string {
 	return ip
 }
 
-func handleNotify(ctx context.Context, store NotificationStore, w http.ResponseWriter, r *http.Request) {
+func handleNotify(store NotificationStore, w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	setCORSHeaders(w)
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
@@ -120,7 +116,12 @@ func handleNotify(ctx context.Context, store NotificationStore, w http.ResponseW
 	case "POST":
 		r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 		var notif Notification
-		if err := json.NewDecoder(r.Body).Decode(&notif); err != nil {
+		decoder := json.NewDecoder(r.Body)
+		if err := decoder.Decode(&notif); err != nil {
+			http.Error(w, "Bad Request: invalid JSON or body too large", http.StatusBadRequest)
+			return
+		}
+		if err := decoder.Decode(new(any)); err != io.EOF {
 			http.Error(w, "Bad Request: invalid JSON or body too large", http.StatusBadRequest)
 			return
 		}

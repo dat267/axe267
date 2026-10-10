@@ -23,13 +23,17 @@ export async function loadBookData(filePath, url) {
       if (!url) throw new Error("No download URL available");
       const response = await fetch(url);
       if (!response.ok) throw new Error("Fetch failed");
-      const keys = await cache.keys();
-      for (const req of keys) {
-        if (isStaleCacheEntry(cacheKey, req.url, filePath)) {
-          await cache.delete(req);
+      try {
+        await cache.put(cacheKey, response.clone());
+        const keys = await cache.keys();
+        for (const req of keys) {
+          if (isStaleCacheEntry(cacheKey, req.url, filePath)) {
+            await cache.delete(req);
+          }
         }
+      } catch (error) {
+        console.warn("Book cache write failed:", error);
       }
-      await cache.put(cacheKey, response.clone());
       return await response.blob();
     } catch (e) {
       if (canCache) console.warn("Cache error, falling back:", e);

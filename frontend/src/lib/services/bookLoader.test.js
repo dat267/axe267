@@ -68,6 +68,16 @@ describe("loadBookData", () => {
     expect(mockPut).toHaveBeenCalledOnce();
   });
 
+  it("returns the downloaded book without fetching twice when cache storage is full", async () => {
+    const { mockPut } = mockCache();
+    mockPut.mockRejectedValue(new Error("Cache quota exceeded"));
+    globalThis.fetch = vi.fn(async () => textResponse("fresh epub"));
+
+    const result = await loadBookData(FILE_PATH, DOWNLOAD_URL);
+    expect(result?.size).toBe(10);
+    expect(globalThis.fetch).toHaveBeenCalledOnce();
+  });
+
   it("throws when no cache and no url", async () => {
     mockCache();
     await expect(loadBookData(FILE_PATH, "")).rejects.toThrow("No download URL");
@@ -93,6 +103,17 @@ describe("loadBookData", () => {
     const result = await loadBookData(FILE_PATH, DOWNLOAD_URL);
     expect(result?.size).toBeGreaterThan(0);
     expect(result?.type).toContain("epub");
+  });
+
+  it("keeps the offline copy when caching the new version fails", async () => {
+    const { store, mockPut } = mockCache();
+    const staleKey = `https://axe-local/${encodeURIComponent(FILE_PATH)}?url=old-url`;
+    store.set(staleKey, textResponse("stale"));
+    mockPut.mockRejectedValue(new Error("Cache quota exceeded"));
+    globalThis.fetch = vi.fn(async () => textResponse("fresh"));
+
+    await loadBookData(FILE_PATH, DOWNLOAD_URL);
+    expect(store.has(staleKey)).toBe(true);
   });
 
   it("cleans stale cache entries on fresh fetch", async () => {

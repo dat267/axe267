@@ -14,8 +14,12 @@ env:
   KEEP_RELEASES: ${{ vars.KEEP_RELEASES || '3' }}
 
 jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
   backend:
     name: Backend (${{ matrix.goos }}/${{ matrix.goarch }})
+    needs: test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -30,7 +34,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Build
         working-directory: backend
@@ -53,18 +57,29 @@ jobs:
 
   frontend-dist:
     name: Frontend dist
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v6
         with:
-          bun-version: latest
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install and build
         working-directory: frontend
         run: |
-          bun install --frozen-lockfile
-          bun run build
+          npm ci
+          npm run build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
 
       - name: Package dist
         run: |

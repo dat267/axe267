@@ -411,6 +411,7 @@
       {/each}
     {/if}
   </div>
+</div>
 
   <!-- Reader Overlay -->
   {#if isReaderOpen}
@@ -446,5 +447,4 @@
       onReaderElement={(el) => { readerElement = el; }}
     />
   {/if}
-</div>
 <svelte:body class:overflow-hidden={isReaderOpen} />

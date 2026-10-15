@@ -61,14 +61,17 @@
 </script>
 
 <div class="fixed inset-0 h-[100dvh] max-h-[100dvh] z-[60] flex flex-col bg-background overflow-hidden text-foreground">
-  <header class="flex h-16 shrink-0 items-center justify-between border-b border-border p-4 md:px-8 bg-background">
-    <div class="flex flex-col overflow-hidden">
-      <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500 truncate">{metadata?.title || currentBookName}</span>
+  <header class="flex h-16 shrink-0 items-center justify-between gap-2 border-b border-border p-4 md:px-8 bg-background">
+    <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
+      <span
+        class="block min-w-0 text-[10px] font-bold uppercase tracking-widest text-gray-500 truncate"
+        title={metadata?.title || currentBookName}
+      >{metadata?.title || currentBookName}</span>
       {#if progress > 0}
         <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400/60 mt-0.5">{(progress * 100).toFixed(0)}% read</span>
       {/if}
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex shrink-0 items-center gap-2">
       <button onclick={onThemeCycle} class="icon-btn" aria-label="Cycle theme">
         {#if themeMode === "dark"}
           <Icon svg={ICONS.MOON} size={20} />

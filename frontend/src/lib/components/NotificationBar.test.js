@@ -20,6 +20,19 @@ beforeEach(() => {
 });
 
 describe("NotificationBar", () => {
+  it("keeps the existing header button spacing", () => {
+    render(NotificationBar, {
+      props: {
+        currentPath: "/",
+        onThemeCycle: vi.fn(),
+        onSignOut: vi.fn(),
+      },
+    });
+
+    expect(screen.getByLabelText("Home").parentElement).toHaveClass("gap-2");
+    expect(screen.getByLabelText("Cycle theme").parentElement).toHaveClass("gap-2");
+  });
+
   it("renders theme and signout buttons", () => {
     render(NotificationBar, {
       props: {

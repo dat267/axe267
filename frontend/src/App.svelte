@@ -109,7 +109,6 @@
 {:else}
   <Router {url}>
     <div class="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
-      <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8">
         <NotificationBar
           {currentPath}
           {notifications}
@@ -118,7 +117,6 @@
           onSignOut={handleLogout}
           onClearAll={handleClearAll}
         />
-      </header>
 
       <main class="flex flex-1 overflow-y-auto overflow-x-hidden">
         <section class="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 py-8 md:p-8">

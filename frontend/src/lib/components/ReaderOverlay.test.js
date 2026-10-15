@@ -24,6 +24,22 @@ describe("ReaderOverlay", () => {
     expect(screen.getByText("Test Book")).toBeInTheDocument();
   });
 
+  it("keeps the full book title available when the narrow header truncates it", () => {
+    const title = "An unusually long title that should not push the reader controls off screen";
+    render(ReaderOverlay, {
+      props: {
+        renderer: mockRenderer,
+        currentBookName: title,
+        onClose: vi.fn(),
+      },
+    });
+
+    const titleElement = screen.getByText(title);
+    expect(titleElement).toHaveAttribute("title", title);
+    expect(titleElement).toHaveClass("block", "truncate");
+    expect(screen.getByLabelText("Close reader")).toBeInTheDocument();
+  });
+
   it("shows progress percentage when > 0", () => {
     render(ReaderOverlay, {
       props: {

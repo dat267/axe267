@@ -62,7 +62,11 @@
             await executeAction(async () => {
                 const result = await signUp(auth, email, password);
                 if (result.error) throw result.error;
-                await sendVerification(result.user);
+                const verification = await sendVerification(result.user);
+                if (verification.error) {
+                    error = `Account created, but the verification email could not be sent. ${getErrorMessage(verification.error)}`;
+                    return;
+                }
                 message = "Account created! A verification email has been sent.";
             });
         } else if (mode === "forgot") {

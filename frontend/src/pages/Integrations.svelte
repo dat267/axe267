@@ -79,13 +79,11 @@
   const curlCommand = $derived(`curl -X POST "${apiUrl}" \\
 ${authHeader} \\
 -H "Content-Type: application/json" \\
--d '{
-  "type": "${form.type}",
-  "source": "${form.source}",
-  "title": "${form.title}",
-  "message": "${form.message}",
-  "category": "${form.category}"
-}'`);
+-d ${shellSingleQuote(JSON.stringify(form, null, 2))}`);
+
+  function shellSingleQuote(value) {
+    return `'${value.replace(/'/g, "'\\''")}'`;
+  }
 
   onMount(() => {
     if (!authStore.user) return;

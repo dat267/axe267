@@ -249,6 +249,7 @@
               fontSize = 16;
               fontFamily = FONT_OPTIONS[0].value;
               lineHeight = 1.5;
+              onApplyTypography?.({ fontSize, fontFamily, lineHeight });
               onSwitchFlow?.("paginated");
             }}
           >reset defaults</Button>

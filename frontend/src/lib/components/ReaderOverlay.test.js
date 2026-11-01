@@ -191,4 +191,30 @@ describe("ReaderOverlay", () => {
     await user.click(screen.getByLabelText("Cycle theme"));
     expect(onThemeCycle).toHaveBeenCalledOnce();
   });
+
+  it("applies default typography when reset defaults is clicked", async () => {
+    const user = userEvent.setup();
+    const onApplyTypography = vi.fn();
+    render(ReaderOverlay, {
+      props: {
+        renderer: mockRenderer,
+        currentBookName: "Test",
+        fontSize: 24,
+        fontFamily: "ui-monospace, monospace",
+        lineHeight: 2,
+        onClose: vi.fn(),
+        onApplyTypography,
+        onSwitchFlow: vi.fn(),
+      },
+    });
+
+    await user.click(screen.getByLabelText("Typography settings"));
+    await user.click(screen.getByText("reset defaults"));
+
+    expect(onApplyTypography).toHaveBeenCalledWith({
+      fontSize: 16,
+      fontFamily: "ui-sans-serif, system-ui, sans-serif",
+      lineHeight: 1.5,
+    });
+  });
 });

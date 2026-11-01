@@ -139,6 +139,8 @@
   }
   async function openBook(title, filePath) {
     currentBookName = title;
+    metadata = null;
+    toc = [];
     isReaderOpen = true;
     isBookLoading = true;
     progress = 0;
@@ -157,17 +159,22 @@
     } catch (e) {
       console.error("Failed to load book data:", e);
       isBookLoading = false;
+      closeReader();
       return;
     }
 
     let savedCfi = null;
-    try {
-      if (auth.currentUser) {
+    if (auth.currentUser) {
+      try {
         savedCfi = await loadProgress(auth.currentUser.uid, title);
+      } catch (e) {
+        console.warn("Failed to load saved progress:", e);
       }
+    }
 
-      // Create renderer and render the book (renderer owns ePub creation,
-      // readiness, rendition, and display).
+    // Create renderer and render the book (renderer owns ePub creation,
+    // readiness, rendition, and display).
+    try {
       renderer = createBookRenderer(readerElement, {
         flow,
         isDarkMode: themeStore.darkMode,
@@ -186,6 +193,11 @@
       }
     } finally {
       isBookLoading = false;
+    }
+
+    if (!renderer) {
+      closeReader();
+      return;
     }
 
     applyTypography();

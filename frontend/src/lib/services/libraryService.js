@@ -40,7 +40,9 @@ export async function listBooks(storage) {
 
   const rootEpubs = res.items.filter((i) => i.name.toLowerCase().endsWith(".epub"));
   if (rootEpubs.length > 0) {
-    collections.push({ id: "Books", name: "Books" });
+    if (!collections.some((collection) => collection.id === "Books")) {
+      collections.push({ id: "Books", name: "Books" });
+    }
     for (const itemRef of rootEpubs) {
       tracks.push({
         id: itemRef.fullPath,

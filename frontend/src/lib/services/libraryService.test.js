@@ -87,6 +87,23 @@ describe("listBooks", () => {
     expect(result.tracks[0].title).toBe("a-book");
     expect(result.tracks[1].title).toBe("z-book");
   });
+
+  it("keeps collection ids unique when a folder is also named Books", async () => {
+    listAll
+      .mockResolvedValueOnce({
+        items: [{ fullPath: "books/root.epub", name: "root.epub" }],
+        prefixes: [{ fullPath: "books/Books", name: "Books" }],
+      })
+      .mockResolvedValueOnce({
+        items: [{ fullPath: "books/Books/nested.epub", name: "nested.epub" }],
+        prefixes: [],
+      });
+
+    const result = await listBooks(setupStorage());
+
+    expect(result.collections).toEqual([{ id: "Books", name: "Books" }]);
+    expect(result.tracks).toHaveLength(2);
+  });
 });
 
 describe("uploadBook", () => {

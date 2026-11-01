@@ -105,6 +105,14 @@ describe("loadBookData", () => {
     expect(result?.type).toContain("epub");
   });
 
+  it("does not use a nested book's cache for the requested book", async () => {
+    const { store } = mockCache();
+    const nestedKey = `https://axe-local/${encodeURIComponent("books/Novel.epub/chapter.epub")}?url=nested`;
+    store.set(nestedKey, textResponse("nested"));
+
+    await expect(loadBookData("books/Novel.epub", "")).rejects.toThrow("No download URL available and no cached data");
+  });
+
   it("keeps the offline copy when caching the new version fails", async () => {
     const { store, mockPut } = mockCache();
     const staleKey = `https://axe-local/${encodeURIComponent(FILE_PATH)}?url=old-url`;

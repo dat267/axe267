@@ -19,6 +19,13 @@ describe("readerKeys cache keys", () => {
     expect(isStaleCacheEntry(current, other, "books/a.epub")).toBe(false);
     expect(isStaleCacheEntry(current, current, "books/a.epub")).toBe(false);
   });
+
+  it("does not treat a nested book path as the same file", () => {
+    const current = buildCacheKey("books/Novel.epub", "https://example.com/root");
+    const nested = buildCacheKey("books/Novel.epub/chapter.epub", "https://example.com/nested");
+
+    expect(isStaleCacheEntry(current, nested, "books/Novel.epub")).toBe(false);
+  });
 });
 
 describe("locationsStorageKey", () => {

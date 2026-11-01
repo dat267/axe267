@@ -151,4 +151,22 @@ describe("clearBookCache", () => {
     expect(mockDelete).toHaveBeenCalled();
     expect(lsMock.removeItem).toHaveBeenCalled();
   });
+
+  it("does not remove cached books under a folder with the same path", async () => {
+    const rootKey = `https://axe-local/${encodeURIComponent("books/Novel.epub")}?url=root`;
+    const nestedKey = `https://axe-local/${encodeURIComponent("books/Novel.epub/chapter.epub")}?url=nested`;
+    const mockDelete = vi.fn().mockResolvedValue(undefined);
+    globalThis.caches = {
+      open: vi.fn().mockResolvedValue({
+        keys: vi.fn().mockResolvedValue([{ url: rootKey }, { url: nestedKey }]),
+        delete: mockDelete,
+      }),
+    };
+    const lsMock = { removeItem: vi.fn() };
+    vi.stubGlobal("localStorage", lsMock);
+
+    await clearBookCache("books/Novel.epub", "Novel");
+
+    expect(mockDelete.mock.calls.map(([request]) => request.url)).toEqual([rootKey]);
+  });
 });

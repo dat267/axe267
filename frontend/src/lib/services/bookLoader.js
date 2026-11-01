@@ -1,4 +1,4 @@
-import { buildCacheKey, cachePrefix, isStaleCacheEntry } from "../utils/readerKeys";
+import { buildCacheKey, isCacheEntryForFile, isStaleCacheEntry } from "../utils/readerKeys";
 import { EPUB_CACHE_NAME } from "../utils/constants";
 
 /**
@@ -45,7 +45,7 @@ export async function loadBookData(filePath, url) {
     try {
       const cache = await caches.open(EPUB_CACHE_NAME);
       const keys = await cache.keys();
-      const match = keys.find((r) => r.url.startsWith(cachePrefix(filePath)));
+      const match = keys.find((r) => isCacheEntryForFile(r.url, filePath));
       if (match) {
         const cachedResponse = await cache.match(match);
         if (cachedResponse) return await cachedResponse.blob();

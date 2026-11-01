@@ -13,8 +13,12 @@ export function buildCacheKey(filePath, url) {
   return `${cachePrefix(filePath)}?url=${encodeURIComponent(url)}`;
 }
 
+export function isCacheEntryForFile(candidateKey, filePath) {
+  return candidateKey.startsWith(`${cachePrefix(filePath)}?`);
+}
+
 export function isStaleCacheEntry(currentKey, candidateKey, filePath) {
-  return candidateKey.startsWith(cachePrefix(filePath)) && candidateKey !== currentKey;
+  return isCacheEntryForFile(candidateKey, filePath) && candidateKey !== currentKey;
 }
 
 export function locationsStorageKey(title) {

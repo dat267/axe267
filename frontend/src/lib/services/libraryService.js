@@ -1,6 +1,6 @@
 import { ref, listAll, deleteObject, uploadBytes } from "firebase/storage";
 import { EPUB_CACHE_NAME } from "../utils/constants";
-import { cachePrefix, locationsStorageKey } from "../utils/readerKeys";
+import { isCacheEntryForFile, locationsStorageKey } from "../utils/readerKeys";
 
 /**
  * List all EPUB books in Firebase Storage under `books/`.
@@ -102,11 +102,10 @@ export async function clearBookCache(filePath, title) {
 
   if (canCache) {
     try {
-      const prefix = cachePrefix(filePath);
       const cache = await caches.open(EPUB_CACHE_NAME);
       const keys = await cache.keys();
       for (const req of keys) {
-        if (req.url.startsWith(prefix)) {
+        if (isCacheEntryForFile(req.url, filePath)) {
           await cache.delete(req);
         }
       }

@@ -21,7 +21,11 @@ export async function requestNotificationPermission() {
 }
 
 export function sendLocalNotification(title, options) {
-  if (Notification.permission === "granted") {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") {
+    return;
+  }
+
+  try {
     const { onClick, ...notificationOptions } = options || {};
     const notification = new Notification(title, {
       icon: "/favicon.svg",
@@ -34,5 +38,7 @@ export function sendLocalNotification(title, options) {
       if (onClick) onClick();
       notification.close();
     };
+  } catch (error) {
+    console.warn("Local notification failed:", error);
   }
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/svelte";
+import { tick } from "svelte";
 import userEvent from "@testing-library/user-event";
 import ReaderOverlay from "./ReaderOverlay.svelte";
 
@@ -157,6 +158,47 @@ describe("ReaderOverlay", () => {
     // Press enter
     await user.keyboard("{Enter}");
     expect(onSearch).toHaveBeenCalledWith("hello");
+  });
+
+  it("ignores stale search results after a newer search", async () => {
+    const user = userEvent.setup();
+    const pending = [];
+    const onSearch = vi.fn(
+      (query) =>
+        new Promise((resolve) => {
+          pending.push({ query, resolve });
+        }),
+    );
+    render(ReaderOverlay, {
+      props: {
+        renderer: mockRenderer,
+        currentBookName: "Test",
+        onClose: vi.fn(),
+        onSearch,
+      },
+    });
+
+    await user.click(screen.getByLabelText("Search book"));
+    const input = screen.getByLabelText("find keyword");
+    await user.type(input, "first");
+    await user.keyboard("{Enter}");
+    await user.clear(input);
+    await user.type(input, "second");
+    await user.keyboard("{Enter}");
+
+    expect(onSearch).toHaveBeenNthCalledWith(1, "first");
+    expect(onSearch).toHaveBeenNthCalledWith(2, "second");
+
+    pending[1].resolve([{ cfi: "epubcfi(/6/2)", excerpt: "second result" }]);
+    await Promise.resolve();
+    await tick();
+    expect(screen.getByText(/\.\.\.second result\.\.\./)).toBeInTheDocument();
+
+    pending[0].resolve([{ cfi: "epubcfi(/6/4)", excerpt: "first result" }]);
+    await Promise.resolve();
+    await tick();
+    expect(screen.queryByText(/\.\.\.first result\.\.\./)).not.toBeInTheDocument();
+    expect(screen.getByText(/\.\.\.second result\.\.\./)).toBeInTheDocument();
   });
 
   it("calls onJumpTo when a toc item is clicked", async () => {

@@ -38,6 +38,7 @@
   let searchResults = $state([]);
   let isSearching = $state(false);
   let hasSearched = $state(false);
+  let searchRequest = 0;
 
   const FONT_OPTIONS = [
     { label: "Sans", value: "ui-sans-serif, system-ui, sans-serif" },
@@ -47,16 +48,25 @@
 
   async function handleSearch() {
     if (!gotoSearch || !onSearch) return;
+    const request = ++searchRequest;
     isSearching = true;
     hasSearched = true;
     searchResults = [];
     try {
-      searchResults = await onSearch(gotoSearch);
+      const results = await onSearch(gotoSearch);
+      if (request === searchRequest) searchResults = results;
     } catch (err) {
-      console.error("Search failed:", err);
+      if (request === searchRequest) console.error("Search failed:", err);
     } finally {
-      isSearching = false;
+      if (request === searchRequest) isSearching = false;
     }
+  }
+
+  function resetSearchResults() {
+    searchRequest += 1;
+    searchResults = [];
+    isSearching = false;
+    hasSearched = false;
   }
 </script>
 
@@ -132,7 +142,7 @@
                 id="book-search"
                 label="find keyword"
                 bind:value={gotoSearch}
-                oninput={() => { hasSearched = false; }}
+                oninput={resetSearchResults}
                 onkeydown={(e) => e.key === "Enter" && handleSearch()}
                 placeholder="Search..."
               />

@@ -288,6 +288,7 @@
     const handlePopState = () => {
       showUploadModal = window.location.search.includes("upload=1");
       if (isReaderOpen && !hasBookParam()) closeReader(false);
+      else if (!isReaderOpen) stripBookParam();
     };
     window.addEventListener("popstate", handlePopState);
     return () => { renderer?.destroy(); window.removeEventListener("popstate", handlePopState); };

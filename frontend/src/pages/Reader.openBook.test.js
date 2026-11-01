@@ -132,4 +132,14 @@ describe("Reader.openBook", () => {
     expect(screen.queryByTitle("Stale Metadata Title")).not.toBeInTheDocument();
     expect(screen.getByTitle("Opening fixture")).toBeInTheDocument();
   });
+
+  it("strips a stale book param when history returns to it without an open reader", async () => {
+    render(Reader);
+    await screen.findByRole("button", { name: /Opening fixture/ });
+
+    history.pushState({ reader: true, book: "books/Opening fixture.epub" }, "", "?book=books%2FOpening%20fixture.epub");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
+    await waitFor(() => expect(window.location.search).toBe(""));
+  });
 });

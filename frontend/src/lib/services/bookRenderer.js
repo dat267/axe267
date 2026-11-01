@@ -16,6 +16,7 @@ export function createBookRenderer(readerElement, options = {}) {
   let progressCallback = null;
   let metadataCallback = null;
   let tocCallback = null;
+  let flowRequest = 0;
 
   function getRenderOptions(flow) {
     return {
@@ -67,6 +68,7 @@ export function createBookRenderer(readerElement, options = {}) {
      * @param {string|null} [savedCfi=null] - CFI to display after rendering
      */
     async render(bookData, savedCfi = null) {
+      flowRequest += 1;
       if (book) {
         book.destroy();
         book = null;
@@ -103,6 +105,7 @@ export function createBookRenderer(readerElement, options = {}) {
      */
     async switchFlow(newFlow, typography) {
       if (!book || !rendition) return;
+      const request = ++flowRequest;
       const currentCfi = rendition.location?.start?.cfi;
 
       rendition.destroy();
@@ -110,11 +113,18 @@ export function createBookRenderer(readerElement, options = {}) {
 
       rendition = book.renderTo(readerElement, getRenderOptions(newFlow));
 
-      if (currentCfi) {
-        await rendition.display(currentCfi);
-      } else {
-        await rendition.display();
+      try {
+        if (currentCfi) {
+          await rendition.display(currentCfi);
+        } else {
+          await rendition.display();
+        }
+      } catch (error) {
+        if (request !== flowRequest) return;
+        throw error;
       }
+
+      if (request !== flowRequest) return;
 
       this.applyTypography(typography);
       attachContentHooks(rendition, typography?.isDarkMode ?? false);
@@ -252,6 +262,7 @@ export function createBookRenderer(readerElement, options = {}) {
      * Clean up book and rendition.
      */
     destroy() {
+      flowRequest += 1;
       if (book) {
         book.destroy();
         book = null;

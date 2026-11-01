@@ -51,9 +51,41 @@ import { createBookRenderer } from "./bookRenderer";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockBook.renderTo.mockReset();
+  mockBook.renderTo.mockImplementation(() => mockRendition);
   mockRendition.location = null;
   mockRendition.display.mockResolvedValue(undefined);
 });
+
+function makeRendition() {
+  return {
+    themes: {
+      register: vi.fn(),
+      select: vi.fn(),
+      font: vi.fn(),
+      fontSize: vi.fn(),
+    },
+    hooks: {
+      content: { register: vi.fn() },
+    },
+    on: vi.fn(),
+    display: vi.fn().mockResolvedValue(undefined),
+    next: vi.fn(),
+    prev: vi.fn(),
+    destroy: vi.fn(),
+    location: null,
+  };
+}
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
 
 describe("createBookRenderer", () => {
   it("returns an object with the expected methods", () => {
@@ -151,6 +183,41 @@ describe("createBookRenderer", () => {
     expect(mockRendition.destroy).toHaveBeenCalled();
     expect(mockBook.renderTo).toHaveBeenCalledTimes(2);
     expect(mockBook.renderTo).toHaveBeenLastCalledWith(el, expect.objectContaining({ flow: "scrolled" }));
+  });
+
+  it("ignores a superseded flow switch", async () => {
+    const el = document.createElement("div");
+    const initial = makeRendition();
+    const first = makeRendition();
+    const second = makeRendition();
+    const firstDisplay = deferred();
+    first.display.mockReturnValue(firstDisplay.promise);
+    mockBook.renderTo.mockReturnValueOnce(initial).mockReturnValueOnce(first).mockReturnValueOnce(second);
+
+    const renderer = createBookRenderer(el, { flow: "paginated" });
+    await renderer.render(mockBook, null);
+    initial.location = { start: { cfi: "epubcfi(/6/2)" } };
+
+    const stale = renderer.switchFlow("scrolled", {
+      fontSize: 18,
+      fontFamily: "Georgia, serif",
+      lineHeight: 1.8,
+      isDarkMode: false,
+    });
+    const latest = renderer.switchFlow("paginated", {
+      fontSize: 16,
+      fontFamily: "sans",
+      lineHeight: 1.5,
+      isDarkMode: false,
+    });
+
+    await latest;
+    firstDisplay.resolve();
+    await stale;
+
+    expect(second.hooks.content.register).toHaveBeenCalledTimes(1);
+    expect(second.on.mock.calls.filter(([event]) => event === "relocated")).toHaveLength(1);
+    expect(second.themes.font).toHaveBeenLastCalledWith("sans");
   });
 
   it("jumpTo() calls rendition.display with the target", async () => {

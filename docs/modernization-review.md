@@ -15,6 +15,10 @@ The project already uses Svelte 5 runes, Tailwind CSS 4, Vite 8, and structured 
 - **Inconsistent verification.** Pull requests now run the same reusable validation workflow as deployments and releases. It includes frontend tests, lint, build, Go vet/race tests, and emulator-backed Firestore tests. Node 24 LTS and the Go module's version are used consistently in CI. Release installs now use the npm lockfile and receive the Firebase build variables used by deployment.
 - **Documentation drift.** Added the missing root `build` script, documented reproducible installs and verification, and corrected the claim that every Storage overwrite necessarily rotates its download token.
 
+## Dependency update (2026-11-02)
+
+Frontend dev tooling was updated to Vite 8.3.5 and Vitest 4.1.12, with a minimum `minimatch` override of 11.0.1. The root and production-dependency audits report zero known vulnerabilities. Two low-severity `deepmerge` advisories remain transitively through `@sveltejs/vite-plugin-svelte`; no upstream fix was available at the time of the update.
+
 ## Production action required
 
 The reviewed frontend, backend, and rules were deployed to `axe267` on 2026-10-10 (UTC). Rule changes do not retroactively validate existing documents. Before treating the API-key impersonation issue as resolved in production, review existing `api_keys` records against their owners' Firebase Auth accounts and revoke keys with mismatched UID/email pairs. Do not log or export plaintext keys during this audit. The deployment does not replace this existing-key audit.

@@ -44,7 +44,8 @@
   "overrides": {
     "@xmldom/xmldom": "^0.9.12",
     "@grpc/grpc-js": "^1.14.6",
-    "brace-expansion": "^5.0.9"
+    "brace-expansion": "^5.0.9",
+    "minimatch": "^11.0.1"
   },
   "dependencies": {
     "epubjs": "^0.3.93",
@@ -56,6 +57,6 @@
     "core-js@3.49.0": true,
     "es5-ext@0.10.64": true,
     "esbuild@0.28.1": true,
-    "protobufjs@7.6.5": true
+    "protobufjs@7.6.6": true
   }
 }

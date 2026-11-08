@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+var version = "dev"
+
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
@@ -68,7 +70,7 @@ func main() {
 	shutdownCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	logger.Info("starting server", "port", port)
+	logger.Info("starting server", "port", port, "version", version)
 	if err := serveHTTP(shutdownCtx, server, listener); err != nil {
 		logger.Error("server failed", "error", err)
 		os.Exit(1)

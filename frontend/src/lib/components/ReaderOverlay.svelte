@@ -241,11 +241,11 @@
             <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">layout</p>
             <div class="grid grid-cols-2 gap-2">
               <button
-                onclick={() => { onSwitchFlow?.("paginated"); }}
+                onclick={() => { if (flow !== "paginated") onSwitchFlow?.("paginated"); }}
                 class="chip {flow === 'paginated' ? 'active' : 'inactive'} py-2"
               >pages</button>
               <button
-                onclick={() => { onSwitchFlow?.("scrolled"); }}
+                onclick={() => { if (flow !== "scrolled") onSwitchFlow?.("scrolled"); }}
                 class="chip {flow === 'scrolled' ? 'active' : 'inactive'} py-2"
               >scroll</button>
             </div>
@@ -260,7 +260,7 @@
               fontFamily = FONT_OPTIONS[0].value;
               lineHeight = 1.5;
               onApplyTypography?.({ fontSize, fontFamily, lineHeight });
-              onSwitchFlow?.("paginated");
+              if (flow !== "paginated") onSwitchFlow?.("paginated");
             }}
           >reset defaults</Button>
         </div>

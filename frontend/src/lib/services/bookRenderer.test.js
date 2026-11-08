@@ -197,6 +197,8 @@ describe("createBookRenderer", () => {
     const renderer = createBookRenderer(el, { flow: "paginated" });
     await renderer.render(mockBook, null);
     initial.location = { start: { cfi: "epubcfi(/6/2)" } };
+    const relocated = initial.on.mock.calls.find(([event]) => event === "relocated")?.[1];
+    relocated({ start: { cfi: "epubcfi(/6/2)" } });
 
     const stale = renderer.switchFlow("scrolled", {
       fontSize: 18,
@@ -218,6 +220,31 @@ describe("createBookRenderer", () => {
     expect(second.hooks.content.register).toHaveBeenCalledTimes(1);
     expect(second.on.mock.calls.filter(([event]) => event === "relocated")).toHaveLength(1);
     expect(second.themes.font).toHaveBeenLastCalledWith("sans");
+    expect(second.display).toHaveBeenCalledWith("epubcfi(/6/2)");
+  });
+
+  it("keeps hooks when a saved CFI fails to display", async () => {
+    const el = document.createElement("div");
+    mockRendition.display.mockRejectedValueOnce(new Error("No Section Found"));
+    const onProgress = vi.fn();
+    const onMetadata = vi.fn();
+    const onToc = vi.fn();
+    const renderer = createBookRenderer(el, {});
+    renderer.onProgress(onProgress);
+    renderer.onMetadata(onMetadata);
+    renderer.onToc(onToc);
+
+    await expect(renderer.render(mockBook, "epubcfi(/6/999)")).rejects.toThrow("No Section Found");
+
+    const relocated = mockRendition.on.mock.calls.find(([event]) => event === "relocated")?.[1];
+    expect(relocated).toBeDefined();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onMetadata).toHaveBeenCalled();
+    expect(onToc).toHaveBeenCalled();
+
+    relocated({ start: { cfi: "epubcfi(/6/2)" } });
+    expect(onProgress).toHaveBeenCalledWith({ cfi: "epubcfi(/6/2)", percent: 0.5 });
   });
 
   it("jumpTo() calls rendition.display with the target", async () => {

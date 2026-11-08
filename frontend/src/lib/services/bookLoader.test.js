@@ -83,13 +83,12 @@ describe("loadBookData", () => {
     await expect(loadBookData(FILE_PATH, "")).rejects.toThrow("No download URL");
   });
 
-  it("falls back to url string when fetch fails", async () => {
+  it("throws when the download fails and no cache is available", async () => {
     mockCache();
     globalThis.fetch = vi.fn(async () => {
       throw new Error("network down");
     });
-    const result = await loadBookData(FILE_PATH, DOWNLOAD_URL);
-    expect(result).toBe(DOWNLOAD_URL);
+    await expect(loadBookData(FILE_PATH, DOWNLOAD_URL)).rejects.toThrow(/Failed to download book/);
   });
 
   it("falls back to stale cache when fetch fails", async () => {

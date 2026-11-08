@@ -144,7 +144,7 @@
     <div class="pb-20">
       <h2 class="text-xs font-bold uppercase tracking-widest text-rose-500 mb-4">danger zone</h2>
       <p class="text-xs text-gray-500 max-w-2xl mb-6">
-        Deleting your account is permanent. This will remove all your data, notifications, and integration keys instantly.
+        Deleting your account is permanent. This removes your sign-in account; notifications and API keys are not deleted automatically.
       </p>
       <Button variant="danger" onclick={handleDeleteAccount} disabled={loading || showReauth} className="w-full sm:w-auto">delete account</Button>
     </div>

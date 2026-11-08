@@ -36,7 +36,7 @@
         if (!observerTarget) return;
 
         const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && notifications.length >= limit && notifications.length < totalCount) {
+            if (entries[0].isIntersecting && notifications.length >= limit && (totalCount === 0 || notifications.length < totalCount)) {
                 onLoadMore();
             }
         }, { threshold: 0 });
@@ -75,7 +75,7 @@
   <div
     class="group relative flex h-20 w-full cursor-pointer items-stretch gap-4 border-b border-border px-1 py-3 hover:bg-foreground/5 transition-none"
     onclick={() => handleView(notif)}
-    onkeydown={(e) => e.key === 'Enter' && handleView(notif)}
+    onkeydown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter') handleView(notif); }}
     role="button"
     tabindex="0"
   >

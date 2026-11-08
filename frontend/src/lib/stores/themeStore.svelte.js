@@ -1,11 +1,13 @@
 class ThemeStore {
   #mode = $state("dark");
+  #systemDark = $state(false);
   #mediaQuery = null;
   #onChange = null;
 
   constructor() {
     if (typeof window !== "undefined") {
       this.#mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      this.#systemDark = this.#mediaQuery.matches;
       const saved = localStorage.getItem("theme");
       this.#mode = saved === "light" || saved === "dark" || saved === "auto" ? saved : "auto";
       if (this.#mode === "auto") {
@@ -16,8 +18,8 @@ class ThemeStore {
   }
 
   get darkMode() {
-    if (this.#mode === "auto" && this.#mediaQuery) {
-      return this.#mediaQuery.matches;
+    if (this.#mode === "auto") {
+      return this.#systemDark;
     }
     return this.#mode === "dark";
   }
@@ -27,7 +29,11 @@ class ThemeStore {
   }
 
   #listenToSystem() {
-    this.#onChange = () => this.applyTheme();
+    this.#systemDark = this.#mediaQuery?.matches ?? false;
+    this.#onChange = () => {
+      this.#systemDark = this.#mediaQuery?.matches ?? false;
+      this.applyTheme();
+    };
     this.#mediaQuery?.addEventListener("change", this.#onChange);
   }
 

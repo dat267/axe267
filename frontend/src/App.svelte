@@ -32,11 +32,20 @@
     const handleLocationChange = () => { currentPath = window.location.pathname; };
     window.addEventListener("popstate", handleLocationChange);
     const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
     history.pushState = function() {
       originalPushState.apply(this, arguments);
       handleLocationChange();
     };
-    return () => window.removeEventListener("popstate", handleLocationChange);
+    history.replaceState = function() {
+      originalReplaceState.apply(this, arguments);
+      handleLocationChange();
+    };
+    return () => {
+      window.removeEventListener("popstate", handleLocationChange);
+      if (history.pushState !== originalPushState) history.pushState = originalPushState;
+      if (history.replaceState !== originalReplaceState) history.replaceState = originalReplaceState;
+    };
   });
 
   async function loadTotalNotificationsCount() {
@@ -58,9 +67,13 @@
   };
 
   const handleClearAll = async () => {
-    const token = await auth.currentUser?.getIdToken();
-    if (token) {
-      await clearAllNotifications(token);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (token) {
+        await clearAllNotifications(token);
+      }
+    } catch (e) {
+      console.error("Failed to clear notifications:", e);
     }
   };
 

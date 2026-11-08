@@ -120,6 +120,13 @@ describe("uploadBook", () => {
     expect(ref).toHaveBeenCalledWith(expect.anything(), "books/Fiction/test.epub");
     expect(uploadBytes).toHaveBeenCalled();
   });
+
+  it("rejects collection names containing path separators", async () => {
+    const file = new File(["content"], "test.epub", { type: "application/epub+zip" });
+    await expect(uploadBook(setupStorage(), file, "Sci-Fi/Fantasy")).rejects.toThrow("Invalid collection name");
+    expect(ref).not.toHaveBeenCalled();
+    expect(uploadBytes).not.toHaveBeenCalled();
+  });
 });
 
 describe("deleteBook", () => {

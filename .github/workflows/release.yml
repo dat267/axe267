@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
 env:
   TAG_PREFIX:    axe
   KEEP_RELEASES: ${{ vars.KEEP_RELEASES || '3' }}
@@ -102,11 +106,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.4
       - uses: actions/download-artifact@v8
         with:
           name: frontend-dist
           path: frontend/dist
+      - name: Extract frontend assets
+        run: tar xzf frontend/dist/axe-frontend-dist.tar.gz -C frontend/dist
 
       - name: Compile binary
         working-directory: frontend
@@ -115,6 +121,20 @@ jobs:
           [[ "${{ matrix.target }}" == bun-windows-* ]] && SUFFIX=".exe"
           OUT="axe-frontend-${{ matrix.target }}${SUFFIX}"
           bun build --compile --target=${{ matrix.target }} --minify --sourcemap ./serve.js --outfile "$OUT"
+
+      - name: Smoke test Linux binary
+        if: matrix.target == 'bun-linux-x64'
+        working-directory: frontend
+        run: |
+          PORT=4173 ./axe-frontend-bun-linux-x64 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for _ in $(seq 1 25); do
+            if curl -fsS -o /dev/null http://127.0.0.1:4173/; then break; fi
+            sleep 0.2
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4173/)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:4173/api/notify)" = "501"
 
       - uses: actions/upload-artifact@v7
         with:

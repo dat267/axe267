@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 type Notification struct {
@@ -54,14 +55,14 @@ func isRateLimited(ip string) bool {
 }
 
 func validateNotification(notif Notification) string {
-	if len(notif.Title) == 0 || len(notif.Title) > maxFieldLength {
-		return "title is required and must be under 500 characters"
+	if n := utf8.RuneCountInString(notif.Title); n == 0 || n > maxFieldLength {
+		return "title is required and must be at most 500 characters"
 	}
-	if len(notif.Message) == 0 || len(notif.Message) > maxFieldLength {
-		return "message is required and must be under 500 characters"
+	if n := utf8.RuneCountInString(notif.Message); n == 0 || n > maxFieldLength {
+		return "message is required and must be at most 500 characters"
 	}
-	if len(notif.Source) == 0 || len(notif.Source) > maxFieldLength {
-		return "source is required and must be under 500 characters"
+	if n := utf8.RuneCountInString(notif.Source); n == 0 || n > maxFieldLength {
+		return "source is required and must be at most 500 characters"
 	}
 	validTypes := map[string]bool{"info": true, "success": true, "warning": true, "error": true}
 	if !validTypes[notif.Type] {
@@ -102,11 +103,6 @@ func handleNotify(store NotificationStore, w http.ResponseWriter, r *http.Reques
 	setCORSHeaders(w)
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(http.StatusOK)
-		return
-	}
-
-	if isRateLimited(clientIP(r)) {
-		http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 		return
 	}
 

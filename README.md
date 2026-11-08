@@ -178,6 +178,6 @@ Every push to `main` publishes a release under the `axe/<sha>` tag containing:
 
 - **Backend binaries** — `axe-backend-{linux,darwin,windows}-{amd64,arm64}` (Go)
 - **Frontend binaries** — `axe-frontend-bun-{linux,darwin,windows}-{x64,arm64}` (Bun-compiled server)
-- **Frontend static assets** — `axe-frontend-dist.tar.gz`
+- **Frontend static assets** — `axe-frontend-dist.tar.gz` (extract it into a `dist/` directory next to the binary)
 
 Only the 3 most recent releases are kept; older ones are automatically pruned.

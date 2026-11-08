@@ -1,5 +1,6 @@
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../services/firebase";
+import { reconcileApiKeyEmails } from "../services/apiKeyService";
 import { resolveAdmin } from "./resolveAdmin";
 class AuthStore {
   #user = $state(null);
@@ -12,6 +13,9 @@ class AuthStore {
       this.#isVerified = firebaseUser?.emailVerified ?? false;
       this.#isAdmin = firebaseUser ? await resolveAdmin(firebaseUser) : false;
       this.#loading = false;
+      if (firebaseUser?.emailVerified && auth.currentUser?.uid === firebaseUser.uid) {
+        reconcileApiKeyEmails(firebaseUser).catch((e) => console.warn("API key email sync failed:", e));
+      }
     });
   }
   get user() {
@@ -45,6 +49,9 @@ class AuthStore {
     this.#user = refreshedUser;
     this.#isVerified = refreshedUser.emailVerified;
     this.#isAdmin = await resolveAdmin(refreshedUser, () => refreshedUser.getIdTokenResult(true));
+    if (refreshedUser.emailVerified) {
+      reconcileApiKeyEmails(refreshedUser).catch((e) => console.warn("API key email sync failed:", e));
+    }
   }
 }
 export const authStore = new AuthStore();

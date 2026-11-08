@@ -74,6 +74,12 @@ export async function listBooks(storage) {
  * @returns {Promise<void>}
  */
 export async function uploadBook(storage, file, collection) {
+  if (
+    collection !== "Books" &&
+    (!collection || collection.includes("/") || collection.includes("\\") || collection === "." || collection === "..")
+  ) {
+    throw new Error("Invalid collection name");
+  }
   const storagePath = collection === "Books" ? `books/${file.name}` : `books/${collection}/${file.name}`;
   const fileRef = ref(storage, storagePath);
   await uploadBytes(fileRef, file);
@@ -98,7 +104,7 @@ export async function deleteBook(storage, filePath) {
  * @returns {Promise<void>}
  */
 export async function clearBookCache(filePath, title) {
-  const canCache = typeof globalThis !== "undefined" && "caches" in globalThis;
+  const canCache = typeof globalThis !== "undefined" && typeof globalThis.caches !== "undefined";
 
   if (canCache) {
     try {

@@ -1,5 +1,6 @@
 <script>
   import { onMount, tick } from "svelte";
+  import { SvelteURLSearchParams } from "svelte/reactivity";
   import { auth, getStorageInstance } from "../lib/services/firebase";
   import { authStore } from "../lib/stores/authStore.svelte.js";
   import { themeStore } from "../lib/stores/themeStore.svelte.js";
@@ -44,12 +45,25 @@
   let showUploadModal = $state(window.location.search.includes("upload=1"));
   let uploadError = $state("");
 
+  function closeUploadModal() {
+    showUploadModal = false;
+    const params = new SvelteURLSearchParams(window.location.search);
+    if (!params.has("upload")) return;
+    params.delete("upload");
+    const qs = params.toString();
+    window.history.replaceState(window.history.state, "", qs ? `?${qs}` : window.location.pathname);
+  }
+
   async function handleUpload(e) {
     e.preventDefault();
     uploadError = "";
     if (!uploadFile) return;
     const col = uploadCollection === "new" ? newCollectionName.trim() : uploadCollection;
     if (!col) return;
+    if (col === "." || col === ".." || col.includes("/") || col.includes("\\")) {
+      uploadError = "Collection names cannot contain slashes.";
+      return;
+    }
 
     const maxBytes = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
     if (uploadFile.size > maxBytes) {
@@ -72,7 +86,7 @@
       const fileInput = /** @type {HTMLInputElement | null} */ (document.getElementById("epub-file"));
       if (fileInput) fileInput.value = "";
       await loadLibrary();
-      history.back();
+      closeUploadModal();
     } catch (err) {
       uploadError = "Upload failed: " + err.message;
     } finally {
@@ -111,7 +125,11 @@
       lineHeight,
       isDarkMode: themeStore.darkMode,
     });
-    localStorage.setItem(LS_READER_SETTINGS, JSON.stringify({ fontSize, fontFamily, lineHeight, flow }));
+    try {
+      localStorage.setItem(LS_READER_SETTINGS, JSON.stringify({ fontSize, fontFamily, lineHeight, flow }));
+    } catch (e) {
+      console.warn("Failed to save reader settings:", e);
+    }
   }
 
   $effect(() => { if (themeStore.darkMode !== undefined) applyTypography(); });
@@ -129,13 +147,17 @@
   }
   async function applyFlow() {
     if (!renderer?.book || !renderer?.rendition) return;
-    await renderer.switchFlow(flow, {
-      fontSize,
-      fontFamily,
-      lineHeight,
-      isDarkMode: themeStore.darkMode,
-    });
-    attachRenditionEvents(currentBookName);
+    try {
+      await renderer.switchFlow(flow, {
+        fontSize,
+        fontFamily,
+        lineHeight,
+        isDarkMode: themeStore.darkMode,
+      });
+      attachRenditionEvents(currentBookName);
+    } catch (e) {
+      console.error("Failed to switch layout:", e);
+    }
   }
   async function openBook(title, filePath) {
     currentBookName = title;
@@ -174,6 +196,7 @@
 
     // Create renderer and render the book (renderer owns ePub creation,
     // readiness, rendition, and display).
+    let displayFailed = false;
     try {
       renderer = createBookRenderer(readerElement, {
         flow,
@@ -190,12 +213,13 @@
         if (renderer?.rendition) await renderer.rendition.display();
       } catch (e2) {
         console.error("Fallback display failed:", e2);
+        displayFailed = true;
       }
     } finally {
       isBookLoading = false;
     }
 
-    if (!renderer) {
+    if (!renderer || displayFailed) {
       closeReader();
       return;
     }
@@ -261,8 +285,12 @@
       // and show the book listing.
       stripBookParam();
 
-      // Load library in background (for the book list view).
-      const cachedLib = localStorage.getItem(LS_LIBRARY_CACHE);
+      let cachedLib = null;
+      try {
+        cachedLib = localStorage.getItem(LS_LIBRARY_CACHE);
+      } catch (e) {
+        console.warn("Failed to read library cache:", e);
+      }
       if (cachedLib) {
         try {
           const parsed = JSON.parse(cachedLib);
@@ -273,17 +301,22 @@
           console.warn("Failed to parse library cache:", ce);
         }
       }
-      await loadLibrary();
 
-      const savedSettings = localStorage.getItem(LS_READER_SETTINGS);
-      if (savedSettings) {
-        const parsed = JSON.parse(savedSettings);
-        fontSize = Math.min(96, Math.max(8, parsed.fontSize || 16));
-        fontFamily = parsed.fontFamily || "ui-sans-serif, system-ui, sans-serif";
-        lineHeight = Math.min(3.0, Math.max(1.0, parsed.lineHeight || 1.5));
-        flow = parsed.flow || "paginated";
+      try {
+        const savedSettings = localStorage.getItem(LS_READER_SETTINGS);
+        if (savedSettings) {
+          const parsed = JSON.parse(savedSettings);
+          fontSize = Math.min(96, Math.max(8, parsed.fontSize || 16));
+          fontFamily = parsed.fontFamily || "ui-sans-serif, system-ui, sans-serif";
+          lineHeight = Math.min(3.0, Math.max(1.0, parsed.lineHeight || 1.5));
+          flow = parsed.flow || "paginated";
+        }
+      } catch (se) {
+        console.warn("Failed to parse reader settings:", se);
       }
-    })();
+
+      await loadLibrary();
+    })().catch((e) => console.error("Reader initialization failed:", e));
 
     const handlePopState = () => {
       showUploadModal = window.location.search.includes("upload=1");
@@ -291,7 +324,7 @@
       else if (!isReaderOpen) stripBookParam();
     };
     window.addEventListener("popstate", handlePopState);
-    return () => { renderer?.destroy(); window.removeEventListener("popstate", handlePopState); };
+    return () => { clearTimeout(saveTimeout); renderer?.destroy(); window.removeEventListener("popstate", handlePopState); };
   });
 
   const filteredTracks = $derived(
@@ -338,7 +371,7 @@
     </div>
   </div>
   {#if authStore.isAdmin}
-    <Modal show={showUploadModal} title="upload epub book" onClose={() => history.back()} showFooter={false}>
+    <Modal show={showUploadModal} title="upload epub book" onClose={closeUploadModal} showFooter={false}>
       <form onsubmit={handleUpload} class="flex flex-col gap-6">
         <div>
           <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1" for="epub-file">select file</label>

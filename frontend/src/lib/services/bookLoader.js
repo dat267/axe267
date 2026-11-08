@@ -6,10 +6,10 @@ import { EPUB_CACHE_NAME } from "../utils/constants";
  *
  * @param {string} filePath - Storage path of the book file
  * @param {string} url - Firebase download URL (may be empty)
- * @returns {Promise<Blob | string>} Book data as Blob, or URL string as fallback
+ * @returns {Promise<Blob>} Book data as Blob
  */
 export async function loadBookData(filePath, url) {
-  const canCache = typeof globalThis !== "undefined" && "caches" in globalThis;
+  const canCache = typeof globalThis !== "undefined" && typeof globalThis.caches !== "undefined";
 
   // Try cache first
   if (canCache) {
@@ -59,11 +59,11 @@ export async function loadBookData(filePath, url) {
   if (url) {
     try {
       const response = await fetch(url);
-      if (response.ok) return await response.blob();
-    } catch (_fetchErr) {
-      // fall through to return url as string
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return await response.blob();
+    } catch (e) {
+      throw new Error(`Failed to download book: ${e.message}`, { cause: e });
     }
-    return url;
   }
 
   throw new Error("No download URL available and no cached data");

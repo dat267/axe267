@@ -1,4 +1,15 @@
-import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  getDocs,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "./firebase";
 
 const KEYS_COLLECTION = "api_keys";
@@ -65,4 +76,12 @@ export function subscribeApiKeys(userId, callback) {
 
 export async function deleteApiKey(id) {
   await deleteDoc(doc(db, KEYS_COLLECTION, id));
+}
+
+export async function reconcileApiKeyEmails(user) {
+  if (!user?.uid || !user.email || !user.emailVerified) return;
+  const q = query(collection(db, KEYS_COLLECTION), where("userId", "==", user.uid));
+  const snapshot = await getDocs(q);
+  const stale = snapshot.docs.filter((keyDoc) => keyDoc.data().userEmail !== user.email);
+  await Promise.all(stale.map((keyDoc) => updateDoc(keyDoc.ref, { userEmail: user.email })));
 }

@@ -9,16 +9,25 @@ service cloud.firestore {
       allow write: if false; 
     }
 
-    // Notifications: Users can only see notifications sent to their email
+    // Notifications: Users can only see notifications sent to their verified email
     match /notifications/{notificationId} {
-      allow read, delete: if request.auth != null && request.auth.token.email == resource.data.userEmail;
+      allow read, delete: if request.auth != null &&
+        request.auth.token.email_verified == true &&
+        request.auth.token.email == resource.data.userEmail;
       allow create: if false;
     }
 
     // API Keys: Users can only manage their own keys
     match /api_keys/{keyId} {
       allow read, list, delete: if request.auth != null && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId &&
+      allow create: if request.auth != null &&
+        request.auth.token.email_verified == true &&
+        request.auth.uid == request.resource.data.userId &&
+        request.auth.token.email == request.resource.data.userEmail;
+      allow update: if request.auth != null &&
+        request.auth.token.email_verified == true &&
+        request.auth.uid == resource.data.userId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['userEmail']) &&
         request.auth.token.email == request.resource.data.userEmail;
     }
 

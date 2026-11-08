@@ -3,12 +3,13 @@ import { db } from "../services/firebase";
 
 export async function resolveAdmin(user, getTokenResult = () => user?.getIdTokenResult()) {
   if (!user) return false;
+  let idTokenResult;
   try {
-    const idTokenResult = await getTokenResult();
-    if (idTokenResult?.claims?.admin) return true;
+    idTokenResult = await getTokenResult();
   } catch (_e) {
-    return false;
+    idTokenResult = null;
   }
+  if (idTokenResult?.claims?.admin) return true;
   try {
     const userDoc = await getDoc(doc(db, "users", user.uid));
     return userDoc.exists() && userDoc.data().role === "admin";

@@ -33,8 +33,13 @@ describe("resolveAdmin", () => {
     expect(await resolveAdmin({ uid: "u1" }, () => Promise.resolve({ claims: {} }))).toBe(false);
   });
 
-  it("returns false when token refresh fails", async () => {
+  it("returns false when token refresh fails and the users doc cannot be read", async () => {
     mockGetDoc.mockRejectedValueOnce(new Error("no permission"));
     expect(await resolveAdmin({ uid: "u1" }, () => Promise.reject(new Error("nope")))).toBe(false);
+  });
+
+  it("falls back to the users doc when token refresh fails", async () => {
+    mockGetDoc.mockResolvedValueOnce({ exists: () => true, data: () => ({ role: "admin" }) });
+    expect(await resolveAdmin({ uid: "u1" }, () => Promise.reject(new Error("nope")))).toBe(true);
   });
 });

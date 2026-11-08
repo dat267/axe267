@@ -1,6 +1,14 @@
+import { existsSync } from "node:fs";
+import { dirname } from "node:path";
+
 const { serve, file } = Bun;
 
-const dist = `${import.meta.dir}/dist`;
+const distCandidates = [`${import.meta.dir}/dist`, `${dirname(process.execPath)}/dist`];
+const dist = distCandidates.find((candidate) => existsSync(`${candidate}/index.html`)) ?? distCandidates[0];
+
+if (!existsSync(`${dist}/index.html`)) {
+  console.warn(`Frontend assets not found. Extract axe-frontend-dist.tar.gz into ${dist}`);
+}
 
 const MIME = {
   ".html": "text/html",
@@ -45,6 +53,13 @@ serve({
   fetch(req) {
     const url = new URL(req.url);
     let path = url.pathname;
+
+    if (path === "/api" || path.startsWith("/api/")) {
+      return new Response("API is not available in the standalone frontend server.", {
+        status: 501,
+        headers: { ...securityHeaders, "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
 
     // SPA fallback: routes without a file extension (and the root) render
     // index.html, so client-side navigation and deep links both work. Requests

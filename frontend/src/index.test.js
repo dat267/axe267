@@ -1,7 +1,5 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
-
-const html = readFileSync("index.html", "utf8");
+import html from "../index.html?raw";
 const initialThemeScript = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 
 function appliesDarkTheme(savedTheme, prefersDark) {

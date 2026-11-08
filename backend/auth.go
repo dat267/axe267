@@ -33,7 +33,15 @@ func (v *firebaseVerifier) VerifyIDToken(ctx context.Context, token string) (*Fi
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID token: %w", err)
 	}
+	return firebaseUserFromToken(decoded)
+}
+
+func firebaseUserFromToken(decoded *auth.Token) (*FirebaseUser, error) {
 	email, _ := decoded.Claims["email"].(string)
+	verified, _ := decoded.Claims["email_verified"].(bool)
+	if email == "" || !verified {
+		return nil, fmt.Errorf("email not verified")
+	}
 	return &FirebaseUser{UID: decoded.UID, Email: email}, nil
 }
 
@@ -65,6 +73,10 @@ func authMiddleware(v Verifier, next http.HandlerFunc) http.HandlerFunc {
 		setCORSHeaders(w)
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
+			return
+		}
+		if isRateLimited(clientIP(r)) {
+			http.Error(w, "Rate limit exceeded", http.StatusTooManyRequests)
 			return
 		}
 		authHeader := r.Header.Get("Authorization")

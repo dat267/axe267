@@ -1,0 +1,8 @@
+axe-backend
+tmp
+.env
+.env.*
+*.log
+*.test
+*_test.go
+.air.toml

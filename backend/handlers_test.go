@@ -57,6 +57,24 @@ func TestValidateNotification(t *testing.T) {
 	}
 }
 
+func TestValidateNotificationCountsCharactersNotBytes(t *testing.T) {
+	notif := Notification{
+		Type:     "info",
+		Source:   "cli",
+		Title:    "Deploy",
+		Message:  "done",
+		Category: "system",
+	}
+	notif.Title = strings.Repeat("界", maxFieldLength)
+	if errMsg := validateNotification(notif); errMsg != "" {
+		t.Fatalf("500 multibyte characters should be valid, got: %q", errMsg)
+	}
+	notif.Title = strings.Repeat("界", maxFieldLength+1)
+	if errMsg := validateNotification(notif); !strings.Contains(errMsg, "title") {
+		t.Fatalf("501 multibyte characters should be rejected, got: %q", errMsg)
+	}
+}
+
 type mockVerifier struct {
 	user *FirebaseUser
 	err  error
@@ -327,19 +345,31 @@ func TestHandleNotifyDeleteStoreError(t *testing.T) {
 	}
 }
 
-func TestHandleNotifyRateLimited(t *testing.T) {
-	store := &mockStore{}
-	ip := "203.0.113.50"
-	rec := doNotify(t, store, "POST", `{"type":"info","source":"cli","title":"Deploy","message":"done","category":"system"}`, ip)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("initial request status = %d, want 200", rec.Code)
+func TestAuthMiddlewareRateLimited(t *testing.T) {
+	const ip = "203.0.113.50"
+	t.Cleanup(func() { rateLimiters.Delete(ip) })
+
+	verifier := &mockVerifier{user: &FirebaseUser{UID: "uid123", Email: "me@example.com"}}
+	handler := authMiddleware(verifier, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	send := func() int {
+		req := httptest.NewRequest("POST", "/api/notify", nil)
+		req.Header.Set("Authorization", "Bearer validtoken")
+		req.Header.Set("X-Forwarded-For", ip)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+		return rec.Code
 	}
+
 	for i := 0; i < 60; i++ {
-		doNotify(t, store, "POST", `{"type":"info","source":"cli","title":"Deploy","message":"done","category":"system"}`, ip)
+		if status := send(); status != http.StatusOK {
+			t.Fatalf("request %d status = %d, want 200", i+1, status)
+		}
 	}
-	rec = doNotify(t, store, "POST", `{"type":"info","source":"cli","title":"Deploy","message":"done","category":"system"}`, ip)
-	if rec.Code != http.StatusTooManyRequests {
-		t.Fatalf("status after burst = %d, want 429", rec.Code)
+	if status := send(); status != http.StatusTooManyRequests {
+		t.Fatalf("status after burst = %d, want 429", status)
 	}
 }
 

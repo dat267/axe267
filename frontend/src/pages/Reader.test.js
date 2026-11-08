@@ -43,6 +43,17 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+it("closes the upload modal without relying on browser history", async () => {
+  const user = userEvent.setup();
+  history.replaceState(null, "", "/reader?upload=1");
+  render(Reader);
+
+  expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  await user.click(screen.getByLabelText("Close modal"));
+
+  expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+});
+
 it("shows the reader while a selected book is loading", async () => {
   const user = userEvent.setup();
   render(Reader);

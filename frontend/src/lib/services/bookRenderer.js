@@ -17,6 +17,7 @@ export function createBookRenderer(readerElement, options = {}) {
   let metadataCallback = null;
   let tocCallback = null;
   let flowRequest = 0;
+  let lastCfi = null;
 
   function getRenderOptions(flow) {
     return {
@@ -50,8 +51,9 @@ export function createBookRenderer(readerElement, options = {}) {
     });
 
     rend.on("relocated", (location) => {
-      if (!book || !rend) return;
+      if (!book || rendition !== rend) return;
       const cfi = location.start.cfi;
+      lastCfi = cfi;
       if (progressCallback) {
         progressCallback({
           cfi,
@@ -68,7 +70,7 @@ export function createBookRenderer(readerElement, options = {}) {
      * @param {string|null} [savedCfi=null] - CFI to display after rendering
      */
     async render(bookData, savedCfi = null) {
-      flowRequest += 1;
+      const request = ++flowRequest;
       if (book) {
         book.destroy();
         book = null;
@@ -76,11 +78,24 @@ export function createBookRenderer(readerElement, options = {}) {
       }
 
       book = ePub(/** @type {any} */ (bookData));
+      const currentBook = book;
+      lastCfi = savedCfi;
 
       await book.opened;
+      if (request !== flowRequest) return;
       await book.ready;
+      if (request !== flowRequest) return;
 
       rendition = book.renderTo(readerElement, getRenderOptions(options.flow));
+      attachContentHooks(rendition, options.isDarkMode ?? false);
+
+      currentBook.loaded.metadata.then((m) => {
+        if (book === currentBook) metadataCallback?.(m);
+      });
+      currentBook.loaded.navigation.then((nav) => {
+        if (book !== currentBook) return;
+        tocCallback?.(flattenToc(currentBook, nav.toc || []));
+      });
 
       if (savedCfi) {
         await rendition.display(savedCfi);
@@ -88,14 +103,7 @@ export function createBookRenderer(readerElement, options = {}) {
         await rendition.display();
       }
 
-      attachContentHooks(rendition, options.isDarkMode ?? false);
-
-      // Pass metadata and toc via callbacks
-      book.loaded.metadata.then((m) => metadataCallback?.(m));
-      book.loaded.navigation.then((nav) => {
-        const toc = flattenToc(book, nav.toc || []);
-        tocCallback?.(toc);
-      });
+      if (request !== flowRequest) return;
 
       return { book, rendition };
     },
@@ -106,12 +114,12 @@ export function createBookRenderer(readerElement, options = {}) {
     async switchFlow(newFlow, typography) {
       if (!book || !rendition) return;
       const request = ++flowRequest;
-      const currentCfi = rendition.location?.start?.cfi;
+      const currentCfi = rendition.location?.start?.cfi ?? lastCfi;
 
       rendition.destroy();
-      rendition = null;
-
       rendition = book.renderTo(readerElement, getRenderOptions(newFlow));
+      attachContentHooks(rendition, typography?.isDarkMode ?? false);
+      this.applyTypography(typography);
 
       try {
         if (currentCfi) {
@@ -121,13 +129,12 @@ export function createBookRenderer(readerElement, options = {}) {
         }
       } catch (error) {
         if (request !== flowRequest) return;
-        throw error;
+        if (!currentCfi) throw error;
+        await rendition.display();
+        if (request !== flowRequest) return;
       }
 
       if (request !== flowRequest) return;
-
-      this.applyTypography(typography);
-      attachContentHooks(rendition, typography?.isDarkMode ?? false);
     },
 
     /**
@@ -263,6 +270,7 @@ export function createBookRenderer(readerElement, options = {}) {
      */
     destroy() {
       flowRequest += 1;
+      lastCfi = null;
       if (book) {
         book.destroy();
         book = null;

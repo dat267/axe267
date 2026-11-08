@@ -1,8 +1,29 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const { mockGetDocs, mockUpdateDoc } = vi.hoisted(() => ({
+  mockGetDocs: vi.fn(),
+  mockUpdateDoc: vi.fn(),
+}));
+
+vi.mock("firebase/firestore", () => ({
+  collection: vi.fn(() => ({})),
+  addDoc: vi.fn(),
+  query: vi.fn(() => ({})),
+  where: vi.fn(() => ({})),
+  onSnapshot: vi.fn(),
+  deleteDoc: vi.fn(),
+  doc: vi.fn(() => ({})),
+  serverTimestamp: vi.fn(),
+  getDocs: mockGetDocs,
+  updateDoc: mockUpdateDoc,
+}));
 vi.mock("./firebase", () => ({ db: {} }));
 
-import { generateRandomKey, hashApiKey } from "./apiKeyService";
+import { generateRandomKey, hashApiKey, reconcileApiKeyEmails } from "./apiKeyService";
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 describe("apiKeyService", () => {
   it("generates a key with the expected prefix and length", () => {
@@ -28,5 +49,29 @@ describe("apiKeyService", () => {
 
   it("produces different digests for different keys", async () => {
     expect(await hashApiKey("ntfy_key_a")).not.toBe(await hashApiKey("ntfy_key_b"));
+  });
+});
+
+describe("reconcileApiKeyEmails", () => {
+  it("updates keys that still carry an old email", async () => {
+    const staleRef = { id: "stale" };
+    const currentRef = { id: "current" };
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        { ref: staleRef, data: () => ({ userEmail: "old@example.com" }) },
+        { ref: currentRef, data: () => ({ userEmail: "new@example.com" }) },
+      ],
+    });
+
+    await reconcileApiKeyEmails({ uid: "u1", email: "new@example.com", emailVerified: true });
+
+    expect(mockUpdateDoc).toHaveBeenCalledTimes(1);
+    expect(mockUpdateDoc).toHaveBeenCalledWith(staleRef, { userEmail: "new@example.com" });
+  });
+
+  it("does nothing for unverified users", async () => {
+    await reconcileApiKeyEmails({ uid: "u1", email: "new@example.com", emailVerified: false });
+    expect(mockGetDocs).not.toHaveBeenCalled();
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
   });
 });

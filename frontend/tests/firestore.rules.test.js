@@ -1,7 +1,7 @@
 import { after, before, beforeEach, test } from "node:test";
 import { readFile } from "node:fs/promises";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 let environment;
 
@@ -17,7 +17,9 @@ beforeEach(async () => environment.clearFirestore());
 after(async () => environment?.cleanup());
 
 test("users cannot create API keys addressed to another user's email", async () => {
-  const database = environment.authenticatedContext("alice", { email: "alice@example.com" }).firestore();
+  const database = environment
+    .authenticatedContext("alice", { email: "alice@example.com", email_verified: true })
+    .firestore();
   await assertFails(
     setDoc(doc(database, "api_keys", "spoofed"), {
       userId: "alice",
@@ -36,8 +38,10 @@ test("users cannot take ownership of another user's reading progress", async () 
   await assertFails(setDoc(doc(database, "user_progress", "bob_book"), { uid: "alice", cfi: "stolen" }));
 });
 
-test("users can create API keys for their own email", async () => {
-  const database = environment.authenticatedContext("alice", { email: "alice@example.com" }).firestore();
+test("users can create API keys for their own verified email", async () => {
+  const database = environment
+    .authenticatedContext("alice", { email: "alice@example.com", email_verified: true })
+    .firestore();
   await assertSucceeds(
     setDoc(doc(database, "api_keys", "own"), {
       userId: "alice",
@@ -46,6 +50,63 @@ test("users can create API keys for their own email", async () => {
       name: "own",
     }),
   );
+});
+
+test("unverified users cannot read notifications addressed to their email", async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "notifications", "n1"), {
+      userEmail: "victim@example.com",
+      title: "secret",
+    });
+  });
+  const database = environment
+    .authenticatedContext("attacker", { email: "victim@example.com", email_verified: false })
+    .firestore();
+  await assertFails(getDoc(doc(database, "notifications", "n1")));
+});
+
+test("unverified users cannot create API keys for their email", async () => {
+  const database = environment
+    .authenticatedContext("attacker", { email: "victim@example.com", email_verified: false })
+    .firestore();
+  await assertFails(
+    setDoc(doc(database, "api_keys", "unverified"), {
+      userId: "attacker",
+      userEmail: "victim@example.com",
+      keyHash: "a".repeat(64),
+      name: "unverified",
+    }),
+  );
+});
+
+test("owners can update an API key email to their verified token email", async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "api_keys", "owned"), {
+      userId: "alice",
+      userEmail: "old@example.com",
+      keyHash: "a".repeat(64),
+      name: "owned",
+    });
+  });
+  const database = environment
+    .authenticatedContext("alice", { email: "new@example.com", email_verified: true })
+    .firestore();
+  await assertSucceeds(updateDoc(doc(database, "api_keys", "owned"), { userEmail: "new@example.com" }));
+});
+
+test("owners cannot change other API key fields", async () => {
+  await environment.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "api_keys", "owned"), {
+      userId: "alice",
+      userEmail: "alice@example.com",
+      keyHash: "a".repeat(64),
+      name: "owned",
+    });
+  });
+  const database = environment
+    .authenticatedContext("alice", { email: "alice@example.com", email_verified: true })
+    .firestore();
+  await assertFails(updateDoc(doc(database, "api_keys", "owned"), { keyHash: "b".repeat(64) }));
 });
 
 test("users can check for reading progress before their first save", async () => {

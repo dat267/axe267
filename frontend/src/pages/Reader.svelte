@@ -333,7 +333,7 @@
 </script>
 
 <div class="flex flex-1 flex-col" class:hidden={isReaderOpen}>
-  <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between border-b border-border/50 pb-4">
+  <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-bold tracking-tight lowercase">reader</h1>
       <div class="flex items-center gap-4 sm:hidden">
@@ -423,7 +423,7 @@
       </form>
     </Modal>
   {/if}
-  <div class="space-y-1">
+  <div class="space-y-1 border-border" class:border-t={filteredTracks.length > 0}>
     {#if isLoading && tracks.length === 0}
       <div class="py-20 text-center"><span class="text-sm font-bold uppercase tracking-widest text-gray-500/50">syncing bucket...</span></div>
     {:else if filteredTracks.length === 0}

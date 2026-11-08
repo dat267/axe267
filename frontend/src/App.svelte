@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { Router, Route, Link, navigate } from "svelte5-router";
   import { signOut } from "firebase/auth";
   import { auth } from "./lib/services/firebase";
@@ -16,6 +16,8 @@
     sendLocalNotification,
   } from "./lib/utils/notificationPermission.js";
   import NotificationBar from "./lib/components/NotificationBar.svelte";
+  import PlayerBar from "./lib/components/PlayerBar.svelte";
+  import { playerStore } from "./lib/stores/playerStore.svelte.js";
   import Home from "./pages/Home.svelte";
   import Lazy from "./lib/components/Lazy.svelte";
 
@@ -77,6 +79,11 @@
     }
   };
 
+  // Playback outlives page navigation, but never a session.
+  $effect(() => {
+    if (!authStore.user || !authStore.isVerified) untrack(() => playerStore.stop());
+  });
+
   $effect(() => {
     const user = authStore.user;
     if (user && authStore.isVerified) {
@@ -113,6 +120,25 @@
   });
 </script>
 
+{#snippet accessDenied()}
+  <div class="flex flex-col items-center justify-center py-20 text-center">
+    <div class="mb-6 rounded-full border border-rose-500/20 bg-rose-500/5 p-4 text-rose-500">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    </div>
+    <h1 class="text-xl font-bold tracking-tight lowercase">access denied</h1>
+    <p class="mt-2 max-w-sm text-xs font-semibold uppercase tracking-wider text-gray-500">
+      this module is restricted to administrators only.
+    </p>
+    <Link to="/" class="mt-8 flex h-10 items-center justify-center rounded-md border border-border bg-surface px-6 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none">
+      go home
+    </Link>
+  </div>
+{/snippet}
+
 {#if authStore.loading}
   <div class="flex h-dvh w-full items-center justify-center overflow-hidden bg-background text-foreground">
     <div class="text-sm font-bold uppercase tracking-widest text-gray-500">loading...</div>
@@ -148,22 +174,14 @@
             {#if authStore.isAdmin}
               <Lazy load={() => import("./pages/Reader.svelte")} />
             {:else}
-              <div class="flex flex-col items-center justify-center py-20 text-center">
-                <div class="mb-6 rounded-full border border-rose-500/20 bg-rose-500/5 p-4 text-rose-500">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                  </svg>
-                </div>
-                <h1 class="text-xl font-bold tracking-tight lowercase">access denied</h1>
-                <p class="mt-2 max-w-sm text-xs font-semibold uppercase tracking-wider text-gray-500">
-                  this module is restricted to administrators only.
-                </p>
-                <Link to="/" class="mt-8 flex h-10 items-center justify-center rounded-md border border-border bg-surface px-6 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none">
-                  go home
-                </Link>
-              </div>
+              {@render accessDenied()}
+            {/if}
+          </Route>
+          <Route path="/music">
+            {#if authStore.isAdmin}
+              <Lazy load={() => import("./pages/Music.svelte")} />
+            {:else}
+              {@render accessDenied()}
             {/if}
           </Route>
           <Route path="/integrations">
@@ -180,6 +198,10 @@
           </footer>
         </section>
       </main>
+      <!-- Playback continues on every route; the controls live on the music page. -->
+      {#if currentPath === "/music"}
+        <PlayerBar />
+      {/if}
     </div>
   </Router>
 {/if}

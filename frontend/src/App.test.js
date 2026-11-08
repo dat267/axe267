@@ -3,6 +3,20 @@ import { cleanup, render, screen } from "@testing-library/svelte";
 
 vi.mock("./lib/services/firebase", () => ({
   auth: { currentUser: { uid: "test-user", email: "designer@example.test", getIdToken: vi.fn() } },
+  getStorageInstance: vi.fn(() => new Promise(() => {})),
+}));
+vi.mock("./lib/stores/playerStore.svelte.js", () => ({
+  playerStore: {
+    current: { title: "Now Playing Fixture", filePath: "music/fixture.mp3" },
+    paused: false,
+    currentTime: 0,
+    duration: 0,
+    volume: 1,
+    muted: false,
+    loading: false,
+    error: "",
+    stop: vi.fn(),
+  },
 }));
 vi.mock("./lib/stores/authStore.svelte.js", () => ({
   authStore: {
@@ -31,6 +45,8 @@ vi.mock("./lib/utils/notificationPermission.js", () => ({
 }));
 
 import App from "./App.svelte";
+import { authStore } from "./lib/stores/authStore.svelte.js";
+import { playerStore } from "./lib/stores/playerStore.svelte.js";
 
 beforeEach(() => {
   vi.spyOn(window, "scrollTo").mockImplementation(() => {});
@@ -39,6 +55,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  history.replaceState(null, "", "/");
 });
 
 it("keeps header button groups in one full-width header", async () => {
@@ -46,4 +63,27 @@ it("keeps header button groups in one full-width header", async () => {
 
   expect(await screen.findByLabelText("Sign out")).toBeInTheDocument();
   expect(container.querySelector("header header")).not.toBeInTheDocument();
+});
+
+it("shows the player bar only on the music page", async () => {
+  history.replaceState(null, "", "/");
+  render(App, { props: { url: "/" } });
+  await screen.findByLabelText("Sign out");
+  expect(screen.queryByRole("region", { name: "Player" })).not.toBeInTheDocument();
+  cleanup();
+
+  history.replaceState(null, "", "/music");
+  render(App, { props: { url: "/music" } });
+  expect(await screen.findByRole("region", { name: "Player" })).toHaveTextContent("Now Playing Fixture");
+});
+
+it("stops playback when there is no signed-in user", async () => {
+  const user = authStore.user;
+  authStore.user = null;
+  try {
+    render(App, { props: { url: "/" } });
+    expect(playerStore.stop).toHaveBeenCalled();
+  } finally {
+    authStore.user = user;
+  }
 });

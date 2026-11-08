@@ -16,5 +16,16 @@ service firebase.storage {
       allow read, list: if isAdmin();
       allow write: if isAdmin();
     }
+
+    match /music {
+      allow read, list: if isAdmin();
+    }
+
+    match /music/{fileName} {
+      allow read, list, delete: if isAdmin();
+      allow create, update: if isAdmin() &&
+        request.resource.size < 100 * 1024 * 1024 &&
+        request.resource.contentType.matches('audio/.*');
+    }
   }
 }

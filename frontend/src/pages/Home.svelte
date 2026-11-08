@@ -5,7 +5,12 @@
 
   const APPS = $derived([
     { to: "/notifications", label: "Notifications", icon: ICONS.NOTIFICATION },
-    ...(authStore.isAdmin ? [{ to: "/reader", label: "Reader", icon: ICONS.BOOK }] : []),
+    ...(authStore.isAdmin
+      ? [
+          { to: "/reader", label: "Reader", icon: ICONS.BOOK },
+          { to: "/music", label: "Music", icon: ICONS.MUSIC },
+        ]
+      : []),
     { to: "/integrations", label: "Integrations", icon: ICONS.INTEGRATION },
     { to: "/settings", label: "Settings", icon: ICONS.SETTINGS },
   ]);
@@ -15,6 +20,7 @@
       import("./Notifications.svelte");
       if (authStore.isAdmin) {
         import("./Reader.svelte");
+        import("./Music.svelte");
       }
       import("./Integrations.svelte");
       import("./Settings.svelte");

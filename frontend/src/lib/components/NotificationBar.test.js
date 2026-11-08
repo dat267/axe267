@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/svelte";
+import { render, screen, within } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import NotificationBar from "./NotificationBar.svelte";
 
@@ -54,6 +54,34 @@ describe("NotificationBar", () => {
       },
     });
     expect(screen.getByLabelText("Home")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["Home", "/settings"],
+    ["Back", "/notifications"],
+  ])("navigates to / client-side when %s is clicked", async (label, currentPath) => {
+    const user = userEvent.setup();
+    history.replaceState({}, "", currentPath);
+    const pushState = vi.spyOn(history, "pushState");
+    render(NotificationBar, {
+      props: {
+        currentPath,
+        notifications: [],
+        onThemeCycle: vi.fn(),
+        onSignOut: vi.fn(),
+        onClearAll: vi.fn(),
+      },
+    });
+
+    const clicked = new Promise((resolve) => {
+      screen.getByLabelText(label).addEventListener("click", resolve, { once: true });
+    });
+    await user.click(screen.getByLabelText(label));
+    const event = await clicked;
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(pushState).toHaveBeenCalledWith(expect.anything(), "", "/");
+    expect(window.location.pathname).toBe("/");
   });
 
   it("shows disabled back button on home page", () => {
@@ -154,7 +182,7 @@ describe("NotificationBar", () => {
     expect(onThemeCycle).toHaveBeenCalledOnce();
   });
 
-  it("calls onSignOut when signout button is clicked", async () => {
+  it("asks for confirmation before signing out", async () => {
     const user = userEvent.setup();
     const onSignOut = vi.fn();
     render(NotificationBar, {
@@ -165,6 +193,28 @@ describe("NotificationBar", () => {
       },
     });
     await user.click(screen.getByLabelText("Sign out"));
+    expect(onSignOut).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "sign out?" });
+
+    await user.click(within(dialog).getByRole("button", { name: "sign out" }));
     expect(onSignOut).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("does not sign out when the prompt is cancelled", async () => {
+    const user = userEvent.setup();
+    const onSignOut = vi.fn();
+    render(NotificationBar, {
+      props: {
+        currentPath: "/",
+        onThemeCycle: vi.fn(),
+        onSignOut,
+      },
+    });
+    await user.click(screen.getByLabelText("Sign out"));
+    await user.click(screen.getByRole("button", { name: "cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(onSignOut).not.toHaveBeenCalled();
   });
 });

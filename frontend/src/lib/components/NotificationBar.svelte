@@ -1,5 +1,8 @@
 <script>
+  import { link } from "svelte5-router";
   import Icon from "./Icon.svelte";
+  import Modal from "./Modal.svelte";
+  import Button from "./Button.svelte";
   import { ICONS } from "../utils/icons";
 
   let {
@@ -12,6 +15,18 @@
   } = $props();
 
   let showClearConfirm = $state(false);
+  let showSignOutConfirm = $state(false);
+  let isSigningOut = $state(false);
+
+  async function confirmSignOut() {
+    isSigningOut = true;
+    try {
+      await onSignOut?.();
+    } finally {
+      isSigningOut = false;
+      showSignOutConfirm = false;
+    }
+  }
   let isDeleting = $state(false);
   let confirmTimer;
 
@@ -36,7 +51,7 @@
 <header class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8">
   <div class="flex items-center gap-2">
     {#if currentPath !== "/"}
-      <a href="/" class="icon-btn" aria-label="Back">
+      <a href="/" use:link class="icon-btn" aria-label="Back">
         <Icon svg={ICONS.BACK} size={20} />
       </a>
     {:else}
@@ -44,7 +59,7 @@
         <Icon svg={ICONS.BACK} size={20} />
       </div>
     {/if}
-    <a href="/" class="icon-btn" aria-label="Home">
+    <a href="/" use:link class="icon-btn" aria-label="Home">
       <Icon svg={ICONS.HOME} size={20} />
     </a>
   </div>
@@ -74,8 +89,16 @@
         <Icon svg={ICONS.MONITOR} size={20} />
       {/if}
     </button>
-    <button onclick={onSignOut} class="icon-btn danger" aria-label="Sign out">
+    <button onclick={() => (showSignOutConfirm = true)} class="icon-btn danger" aria-label="Sign out">
       <Icon svg={ICONS.SIGN_OUT} size={20} />
     </button>
   </div>
 </header>
+
+<Modal show={showSignOutConfirm} title="sign out?" onClose={() => (showSignOutConfirm = false)} showFooter={false}>
+  <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">You will need to sign in again to use axe.</p>
+  <div class="mt-8 flex justify-end gap-2">
+    <Button variant="secondary" onclick={() => (showSignOutConfirm = false)} disabled={isSigningOut}>cancel</Button>
+    <Button variant="danger" onclick={confirmSignOut} loading={isSigningOut}>sign out</Button>
+  </div>
+</Modal>

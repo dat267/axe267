@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import {
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+} from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -13,7 +18,14 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+// Same persistence order as getAuth(), but without the popup/redirect
+// resolver: sign-in is email/password only, and the resolver would load a
+// hidden third-party iframe from the auth domain on every page load (which
+// Firefox flags under storage partitioning). Add `popupRedirectResolver:
+// browserPopupRedirectResolver` back if a popup/redirect provider is added.
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+});
 export const db = getFirestore(app);
 
 let storageInstance;

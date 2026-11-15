@@ -39,7 +39,7 @@ Use Node.js 24 LTS (see `.node-version`), Go 1.24 or newer, and Application Defa
 
 ```bash
 npm test            # Frontend unit/component tests and Go tests with the race detector
-npm run lint        # Svelte diagnostics, ESLint, Prettier, and go vet
+npm run lint        # Type checks, ESLint, Prettier, and go vet
 npm run build       # Production frontend build
 npm run test:rules  # Firestore authorization tests against the local emulator
 ```
@@ -165,7 +165,7 @@ The project includes a GitHub Action in `.github/workflows/deploy.yml` that auto
 ---
 
 ## Tech Stack
-- **Frontend:** Svelte 5 (Runes), JavaScript, Vite, npm; Bun for server binary compilation
+- **Frontend:** Svelte 5 (Runes), strict TypeScript, Vite, npm; Bun for server binary compilation
 - **Backend:** Go (Cloud Run), Firestore
 - **Hosting:** Firebase Hosting
 - **Styling:** Tailwind CSS v4

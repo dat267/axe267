@@ -22,7 +22,7 @@ cd frontend && npm run test:component
 
 ### Example
 
-```js
+```ts
 import { render, screen } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
 import { text } from "./test-utils.ts";

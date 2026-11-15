@@ -62,3 +62,7 @@ Authenticated reader/notification flows, production rule behavior using ordinary
 - **Blocked storage.** `themeStore` and the initial-theme script in `index.html` no longer let a `SecurityError` from `localStorage` abort startup. Browsers with site data blocked now boot with the system theme and still cycle themes for the session.
 - **Failed book open.** When EPUB loading or parsing fails before epubjs creates a rendition, the reader now closes back to the library. Previously only a failed fallback `display()` set the failure flag, so the overlay stayed open and blank.
 - **Dead code.** Removed unused icon constants, the unused `_authHeaderName` prop and the derived value that fed it, the unused `html` test helper, and the unused entry-module default export with its stale cache-bust comment. The follow-up findings above are unchanged.
+
+## Frontend TypeScript migration (2026-11-16)
+
+The frontend is strict TypeScript: app source, tests, e2e specs, and the supported tooling configs (`vite`, `vitest`, `playwright`, `svelte`, `eslint`, and the Bun server). `tsconfig.json` replaces `jsconfig.json`, and `svelte-check` runs in `npm run lint`. ESLint uses only `@eslint/js` recommended, `typescript-eslint` recommended, and `eslint-plugin-svelte` recommended, with no rule overrides or inline disables. Icons are stroke-only path data rendered as `<path>` instead of `{@html}`, and the player's URL cache uses `SvelteMap` so the default reactivity rule passes. PostCSS is configured inline in `vite.config.ts`; the only remaining JavaScript-locked config is gone.

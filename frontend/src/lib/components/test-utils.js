@@ -7,11 +7,3 @@ import { createRawSnippet } from "svelte";
  * @returns {ReturnType<typeof createRawSnippet>}
  */
 export const text = (str) => createRawSnippet(() => ({ render: () => `<span>${str}</span>` }));
-
-/**
- * Wrap an HTML string as a Svelte 5 snippet.
- *
- * @param {string} html
- * @returns {ReturnType<typeof createRawSnippet>}
- */
-export const html = (html) => createRawSnippet(() => ({ render: () => html }));

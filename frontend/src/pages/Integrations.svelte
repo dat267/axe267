@@ -67,9 +67,6 @@
       : `-H "x-api-key: ${keyState.selected || "[YOUR_API_KEY]"}"`,
   );
 
-  const authHeaderName = $derived(
-    keyState.method === "bearer" ? "Authorization" : "x-api-key",
-  );
   const authHeaderValue = $derived(
     keyState.method === "bearer"
       ? `Bearer ${token || "[YOUR_TOKEN]"}`
@@ -358,7 +355,6 @@ ${authHeader} \\
     <IntegrationScripts
       {apiUrl}
       {authHeader}
-      _authHeaderName={authHeaderName}
       {authHeaderValue}
     />
   </section>

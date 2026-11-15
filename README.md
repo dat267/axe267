@@ -6,7 +6,7 @@ A professional, responsive notification dashboard and minimalist EPUB reader bui
 
 ## Quick Start (Local Development)
 
-Use Node.js 24 LTS (see `.node-version`), Go 1.24 or newer, and Application Default Credentials for local backend access. Firestore rule tests also require Java 21 or newer. npm and the committed `package-lock.json` files are the source of truth for dependency installs, including release builds. Bun is only required to compile frontend server binaries.
+Use Node.js 24 LTS (see `.node-version`), Go 1.26 or newer, and Application Default Credentials for local backend access. Firestore rule tests also require Java 21 or newer. npm and the committed `package-lock.json` files are the source of truth for dependency installs, including release builds. Bun is only required to compile frontend server binaries.
 
 1.  **Clone & Install**
     ```bash

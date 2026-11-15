@@ -11,7 +11,7 @@ The project already uses Svelte 5 runes, Tailwind CSS 4, Vite 8, and structured 
 - **Request cancellation.** Notification storage operations now receive `r.Context()` instead of the process-wide background context.
 - **Incomplete JSON/body validation.** Notification POST requests must contain one JSON value with no trailing non-whitespace data, and the size limit applies to the entire body, including trailing whitespace.
 - **EPUB cache write failures.** A cache quota error no longer causes a second download. Stale versions are removed only after the replacement is stored, preserving an offline copy if the write fails.
-- **Dependency advisories.** Updated compatible locked dependencies and minimum overrides for `shell-quote`, `@xmldom/xmldom`, and `@grpc/grpc-js`. Both npm audits report zero known vulnerabilities at verification time. Firebase remains at the previous locked version, 12.12.1, to avoid an unrelated bundle-size increase observed during the upgrade trial.
+- **Dependency advisories.** Updated compatible locked dependencies and minimum overrides for `shell-quote`, `@xmldom/xmldom`, and `@grpc/grpc-js`. Both npm audits report zero known vulnerabilities at verification time. Firebase was held at 12.12.1 during that pass to avoid an unrelated bundle-size increase; the 2026-11-16 update revisits that decision.
 - **Inconsistent verification.** Pull requests now run the same reusable validation workflow as deployments and releases. It includes frontend tests, lint, build, Go vet/race tests, and emulator-backed Firestore tests. Node 24 LTS and the Go module's version are used consistently in CI. Release installs now use the npm lockfile and receive the Firebase build variables used by deployment.
 - **Documentation drift.** Added the missing root `build` script, documented reproducible installs and verification, and corrected the claim that every Storage overwrite necessarily rotates its download token.
 
@@ -66,3 +66,13 @@ Authenticated reader/notification flows, production rule behavior using ordinary
 ## Frontend TypeScript migration (2026-11-16)
 
 The frontend is strict TypeScript: app source, tests, e2e specs, and the supported tooling configs (`vite`, `vitest`, `playwright`, `svelte`, `eslint`, and the Bun server). `tsconfig.json` replaces `jsconfig.json`, and `svelte-check` runs in `npm run lint`. ESLint uses only `@eslint/js` recommended, `typescript-eslint` recommended, and `eslint-plugin-svelte` recommended, with no rule overrides or inline disables. Icons are stroke-only path data rendered as `<path>` instead of `{@html}`, and the player's URL cache uses `SvelteMap` so the default reactivity rule passes. PostCSS is configured inline in `vite.config.ts`; the only remaining JavaScript-locked config is gone.
+
+## Dependency update (2026-11-16)
+
+All root and frontend npm dependencies were updated to their latest releases, including `firebase` 13.3.0, `@firebase/rules-unit-testing` 6.0.0, `jsdom` 31.0.1, `prettier-plugin-svelte` 4.1.1, and `vitest` 5.1.0. TypeScript is 6.0.3: the latest `typescript-eslint` (8.72.2) requires `<6.1.0`, so 7.0.2 cannot be used until that peer range widens.
+
+The Firebase update was previously avoided for bundle size. On this commit the main app chunk is 585 KB (178 KB gzip) with Firebase 13.3.0 and 349 KB (108 KB gzip) with 12.12.1, with every other dependency held constant; the increase is entirely Firebase.
+
+The four direct Go modules were updated: `cloud.google.com/go/firestore` 1.29.2, `firebase.google.com/go/v4` 4.23.0, `golang.org/x/oauth2` 0.38.0, and `google.golang.org/api` 0.315.0. The module's Go directive moved to 1.26.0, so the Docker builder is now `golang:1.26-alpine`. GitHub Actions and the Node/Bun pins were left unchanged.
+
+Root `npm audit` reports zero vulnerabilities. Frontend production dependencies report zero; the two low `deepmerge` advisories through `@sveltejs/vite-plugin-svelte` remain with no upstream fix. The existing frontend and Go tests, Firestore rule tests, Playwright spec (with its matching Chromium build), and Bun server smoke test pass.

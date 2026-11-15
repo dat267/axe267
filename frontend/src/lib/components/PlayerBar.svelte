@@ -1,10 +1,10 @@
-<script>
+<script lang="ts">
   import Icon from "./Icon.svelte";
   import { ICONS } from "../utils/icons";
-  import { playerStore } from "../stores/playerStore.svelte.js";
+  import { playerStore, type LoopMode } from "../stores/playerStore.svelte.ts";
 
   // Labels describe the current mode; clicking moves to the next one.
-  const LOOP_LABELS = { off: "Loop: off", all: "Loop: all", one: "Loop: one" };
+  const LOOP_LABELS: Record<LoopMode, string> = { off: "Loop: off", all: "Loop: all", one: "Loop: one" };
 
   // While the seek handle is dragged, show the drag position instead of the
   // live playback time, and only seek once on release.
@@ -13,7 +13,7 @@
   const shownTime = $derived(scrubbing ? scrubValue : playerStore.currentTime);
   const duration = $derived(playerStore.duration);
 
-  function formatTime(seconds) {
+  function formatTime(seconds: number): string {
     if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
     const s = Math.floor(seconds);
     const h = Math.floor(s / 3600);
@@ -22,13 +22,13 @@
     return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
   }
 
-  function handleSeekInput(e) {
+  function handleSeekInput(event: Event) {
     scrubbing = true;
-    scrubValue = Number(/** @type {HTMLInputElement} */ (e.target).value);
+    scrubValue = Number((event.currentTarget as HTMLInputElement).value);
   }
 
-  function handleSeekChange(e) {
-    playerStore.seek(Number(/** @type {HTMLInputElement} */ (e.target).value));
+  function handleSeekChange(event: Event) {
+    playerStore.seek(Number((event.currentTarget as HTMLInputElement).value));
     scrubbing = false;
   }
 </script>
@@ -119,7 +119,7 @@
           max="1"
           step="0.01"
           value={playerStore.volume}
-          oninput={(e) => playerStore.setVolume(Number(/** @type {HTMLInputElement} */ (e.target).value))}
+          oninput={(e) => playerStore.setVolume(Number((e.currentTarget as HTMLInputElement).value))}
           class="player-range w-24"
           aria-label="Volume"
           style="--fill: {playerStore.muted ? 0 : playerStore.volume * 100}%"

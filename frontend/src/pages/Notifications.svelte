@@ -1,88 +1,108 @@
-<script>
-    import Modal from "../lib/components/Modal.svelte";
-    import Input from "../lib/components/Input.svelte";
-    import { CATEGORY_LABELS, TYPE_COLORS } from "../lib/utils/constants";
+<script lang="ts">
+  import Modal from "../lib/components/Modal.svelte";
+  import Input from "../lib/components/Input.svelte";
+  import { CATEGORY_LABELS, TYPE_COLORS } from "../lib/utils/constants.ts";
+  import type { NotificationItem, NotificationTimestamp } from "../lib/services/notificationService";
 
-    let {
-        notifications = [],
-        totalCount = 0,
-        limit = 20,
-        onLoadMore = () => {},
-        onDismiss = () => {},
-    } = $props();
+  interface Props {
+    notifications?: NotificationItem[];
+    totalCount?: number;
+    limit?: number;
+    onLoadMore?: () => void;
+    onDismiss?: (id: string) => void;
+  }
 
-    let selectedNotification = $state(null);
-    let showModal = $state(false);
-    let selectedCategory = $state("all");
-    let searchQuery = $state("");
-    let observerTarget = $state(null);
+  let {
+    notifications = [],
+    totalCount = 0,
+    limit = 20,
+    onLoadMore = () => {},
+    onDismiss = () => {},
+  }: Props = $props();
 
-    let filteredNotifications = $derived(
-        notifications.filter((n) => {
-            const matchesCategory = selectedCategory === "all" ? true : n.category === selectedCategory;
-            const matchesSearch = !searchQuery.trim() || 
-                n.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                n.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                n.source.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchesCategory && matchesSearch;
-        })
+  let selectedNotification = $state<NotificationItem | null>(null);
+  let showModal = $state(false);
+  let selectedCategory = $state<string>("all");
+  let searchQuery = $state("");
+  let observerTarget = $state<HTMLDivElement>();
+
+  let filteredNotifications = $derived(
+    notifications.filter((n) => {
+      const matchesCategory = selectedCategory === "all" ? true : n.category === selectedCategory;
+      const matchesSearch =
+        !searchQuery.trim() ||
+        n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        n.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        n.source.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    }),
+  );
+
+  function handleClose() {
+    showModal = false;
+  }
+
+  $effect(() => {
+    if (!observerTarget) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          notifications.length >= limit &&
+          (totalCount === 0 || notifications.length < totalCount)
+        ) {
+          onLoadMore();
+        }
+      },
+      { threshold: 0 },
     );
 
-    function handleClose() {
-        showModal = false;
-    }
+    observer.observe(observerTarget);
+    return () => observer.disconnect();
+  });
 
-    $effect(() => {
-        if (!observerTarget) return;
+  function formatTime(timestamp: NotificationTimestamp | undefined, full = false): string {
+    if (!timestamp) return "Just now";
+    const date = typeof timestamp === "object" && "toDate" in timestamp ? timestamp.toDate() : new Date(timestamp);
+    if (full) return date.toLocaleString();
 
-        const observer = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting && notifications.length >= limit && (totalCount === 0 || notifications.length < totalCount)) {
-                onLoadMore();
-            }
-        }, { threshold: 0 });
+    const diff = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+    if (diff < 60) return "Just now";
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
 
-        observer.observe(observerTarget);
-        return () => observer.disconnect();
-    });
+    return date.toLocaleDateString();
+  }
 
-    function formatTime(timestamp, full = false) {
-        if (!timestamp) return "Just now";
-        const date = timestamp.toDate
-            ? timestamp.toDate()
-            : new Date(timestamp);
-        if (full) return date.toLocaleString();
+  function handleView(n: NotificationItem) {
+    selectedNotification = n;
+    showModal = true;
+  }
 
-        const diff = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-        if (diff < 60) return "Just now";
-        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-
-        return date.toLocaleDateString();
-    }
-
-    function handleView(n) {
-        selectedNotification = n;
-        showModal = true;
-    }
-
-    function handleDismiss(e, id) {
-        e.stopPropagation();
-        onDismiss(id);
-    }
+  function handleDismiss(e: MouseEvent, id: string) {
+    e.stopPropagation();
+    onDismiss(id);
+  }
 </script>
 
-{#snippet notificationCard(notif)}
+{#snippet notificationCard(notif: NotificationItem)}
   <div
     class="group relative flex h-20 w-full cursor-pointer items-stretch gap-4 border-b border-border px-1 py-3 hover:bg-foreground/5 transition-none"
     onclick={() => handleView(notif)}
-    onkeydown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === 'Enter') handleView(notif); }}
+    onkeydown={(e) => {
+      if (e.target !== e.currentTarget) return;
+      if (e.key === "Enter") handleView(notif);
+    }}
     role="button"
     tabindex="0"
   >
     <div class="my-1 w-1.5 shrink-0 rounded-full {TYPE_COLORS[notif.type] || TYPE_COLORS.info}"></div>
     <div class="flex min-w-0 grow flex-col justify-center">
       <div class="mb-0.5 flex items-center justify-between text-[10px] font-bold tracking-tight text-gray-500">
-        <span class="mr-2 truncate font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">{notif.source}</span>
+        <span class="mr-2 truncate font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400"
+          >{notif.source}</span
+        >
         <span class="shrink-0 uppercase tracking-widest text-[9px]">{formatTime(notif.createdAt)}</span>
       </div>
       <h3 class="truncate text-sm font-bold text-foreground">{notif.title}</h3>
@@ -126,7 +146,7 @@
     </div>
   </div>
   <div class="mb-6">
-    <Input 
+    <Input
       id="searchQuery"
       bind:value={searchQuery}
       placeholder="Search notifications by title, message, or source..."
@@ -156,14 +176,12 @@
     <div bind:this={observerTarget} class="h-10 w-full"></div>
   {/if}
 </div>
-<Modal
-  show={showModal}
-  title={selectedNotification?.title || "Notification Details"}
-  onClose={handleClose}
->
+<Modal show={showModal} title={selectedNotification?.title || "Notification Details"} onClose={handleClose}>
   {#if selectedNotification}
     <div class="space-y-4">
-      <div class="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 sm:flex-row sm:items-start sm:justify-between">
+      <div
+        class="flex flex-col gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 sm:flex-row sm:items-start sm:justify-between"
+      >
         <span class="break-words">{selectedNotification.source}</span>
         <span class="shrink-0 text-gray-500">{formatTime(selectedNotification.createdAt, true)}</span>
       </div>
@@ -173,10 +191,14 @@
         </p>
       </div>
       <div class="flex items-center gap-2">
-        <span class="rounded-md border border-border bg-surface px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400">
+        <span
+          class="rounded-md border border-border bg-surface px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400"
+        >
           {selectedNotification.type}
         </span>
-        <span class="rounded-md border border-border bg-surface px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-gray-500">
+        <span
+          class="rounded-md border border-border bg-surface px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-gray-500"
+        >
           {selectedNotification.category}
         </span>
       </div>

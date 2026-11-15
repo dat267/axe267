@@ -1,203 +1,189 @@
-<script>
-    import { signOut } from "firebase/auth";
-    import { auth } from "../lib/services/firebase";
-    import { authStore } from "../lib/stores/authStore.svelte.js";
-    import { getErrorMessage } from "../lib/utils/authErrors";
-    import { signIn, signUp, resetPassword, sendVerification } from "../lib/services/authService";
-    import Input from "../lib/components/Input.svelte";
-    import Button from "../lib/components/Button.svelte";
-    import Alert from "../lib/components/Alert.svelte";
+<script lang="ts">
+  import { signOut } from "firebase/auth";
+  import { auth } from "../lib/services/firebase";
+  import { authStore } from "../lib/stores/authStore.svelte.ts";
+  import { getErrorMessage } from "../lib/utils/authErrors.ts";
+  import { signIn, signUp, resetPassword, sendVerification } from "../lib/services/authService";
+  import Input from "../lib/components/Input.svelte";
+  import Button from "../lib/components/Button.svelte";
+  import Alert from "../lib/components/Alert.svelte";
 
-    let mode = $state("signin");
-    let email = $state("");
-    let password = $state("");
-    let error = $state("");
-    let message = $state("");
-    let loading = $state(false);
+  type AuthMode = "signin" | "signup" | "forgot" | "verify";
 
-    $effect(() => {
-        if (authStore.user && !authStore.isVerified) {
-            mode = "verify";
-        } else if (!authStore.user && mode === "verify") {
-            mode = "signin";
+  let mode = $state<AuthMode>("signin");
+  let email = $state("");
+  let password = $state("");
+  let error = $state("");
+  let message = $state("");
+  let loading = $state(false);
+
+  $effect(() => {
+    if (authStore.user && !authStore.isVerified) {
+      mode = "verify";
+    } else if (!authStore.user && mode === "verify") {
+      mode = "signin";
+    }
+  });
+
+  const contentMap: Record<AuthMode, { title: string; desc: string }> = {
+    signin: {
+      title: "sign in",
+      desc: "Access your dashboard (verification required)",
+    },
+    signup: { title: "create account", desc: "Create an account to continue" },
+    forgot: {
+      title: "reset password",
+      desc: "We'll send you a recovery link",
+    },
+    verify: { title: "verify your email", desc: "Check your inbox to activate your account" },
+  };
+
+  async function executeAction(action: () => Promise<void>, successMsg = "") {
+    error = "";
+    message = "";
+    loading = true;
+    try {
+      await action();
+      if (successMsg) message = successMsg;
+    } catch (e) {
+      error = getErrorMessage(e);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleSubmit(e: SubmitEvent) {
+    e.preventDefault();
+
+    if (mode === "signin") {
+      await executeAction(async () => {
+        const result = await signIn(auth, email, password);
+        if (!result.success) throw result.error;
+      });
+    } else if (mode === "signup") {
+      await executeAction(async () => {
+        const result = await signUp(auth, email, password);
+        if (!result.success) throw result.error;
+        const verification = await sendVerification(result.user);
+        if (!verification.success) {
+          error = `Account created, but the verification email could not be sent. ${getErrorMessage(verification.error)}`;
+          return;
         }
+        message = "Account created! A verification email has been sent.";
+      });
+    } else if (mode === "forgot") {
+      await executeAction(async () => {
+        const result = await resetPassword(auth, email);
+        if (!result.success) throw result.error;
+        mode = "signin";
+      }, "Password reset email sent!");
+    }
+  }
+
+  async function checkVerification() {
+    await executeAction(async () => {
+      await authStore.refreshStatus();
     });
-
-    const contentMap = {
-        signin: {
-            title: "sign in",
-            desc: "Access your dashboard (verification required)",
-        },
-        signup: { title: "create account", desc: "Create an account to continue" },
-        forgot: {
-            title: "reset password",
-            desc: "We'll send you a recovery link",
-        },
-        verify: { title: "verify your email", desc: "Check your inbox to activate your account" },
-    };
-
-    async function executeAction(action, successMsg = "") {
-        error = "";
-        message = "";
-        loading = true;
-        try {
-            await action();
-            if (successMsg) message = successMsg;
-        } catch (e) {
-            error = getErrorMessage(e);
-        } finally {
-            loading = false;
-        }
+    if (!error && !authStore.isVerified) {
+      error = "Account still unverified. Please check your inbox.";
     }
+  }
 
-    async function handleSubmit(e) {
-        e.preventDefault();
-
-        if (mode === "signin") {
-            await executeAction(async () => {
-                const result = await signIn(auth, email, password);
-                if (result.error) throw result.error;
-            });
-        } else if (mode === "signup") {
-            await executeAction(async () => {
-                const result = await signUp(auth, email, password);
-                if (result.error) throw result.error;
-                const verification = await sendVerification(result.user);
-                if (verification.error) {
-                    error = `Account created, but the verification email could not be sent. ${getErrorMessage(verification.error)}`;
-                    return;
-                }
-                message = "Account created! A verification email has been sent.";
-            });
-        } else if (mode === "forgot") {
-            await executeAction(async () => {
-                const result = await resetPassword(auth, email);
-                if (result.error) throw result.error;
-                mode = "signin";
-            }, "Password reset email sent!");
-        }
-    }
-
-    async function checkVerification() {
-        await executeAction(async () => {
-            await authStore.refreshStatus();
-        });
-        if (!error && !authStore.isVerified) {
-            error = "Account still unverified. Please check your inbox.";
-        }
-    }
-
-    function resend() {
-        executeAction(async () => {
-            const result = await sendVerification(auth.currentUser);
-            if (result.error) throw result.error;
-        }, "Verification email sent! Please check your inbox.");
-    }
+  function resend() {
+    void executeAction(async () => {
+      const user = auth.currentUser;
+      if (!user) throw "auth/no-current-user";
+      const result = await sendVerification(user);
+      if (!result.success) throw result.error;
+    }, "Verification email sent! Please check your inbox.");
+  }
 </script>
 
 {#snippet passwordLabelRight()}
-    {#if mode === "signin"}
-        <button
-            type="button"
-            onclick={() => (mode = "forgot")}
-            class="text-xs text-gray-500 hover:underline dark:text-gray-400"
-        >
-            Forgot password?
-        </button>
-    {/if}
+  {#if mode === "signin"}
+    <button
+      type="button"
+      onclick={() => (mode = "forgot")}
+      class="text-xs text-gray-500 hover:underline dark:text-gray-400"
+    >
+      Forgot password?
+    </button>
+  {/if}
 {/snippet}
 
 <div
-    class="flex min-h-dvh w-full flex-col overflow-y-auto bg-background px-6 pt-12 pb-12 text-foreground sm:items-center sm:justify-center sm:py-12"
+  class="flex min-h-dvh w-full flex-col overflow-y-auto bg-background px-6 pt-12 pb-12 text-foreground sm:items-center sm:justify-center sm:py-12"
 >
-    <div class="mx-auto w-full max-w-sm">
-        <div class="mb-8 text-center sm:mb-10">
-            <h1 class="text-2xl font-bold tracking-tight lowercase">{contentMap[mode].title}</h1>
-            <p class="mt-2 text-xs text-gray-500">
-                {#if mode === "verify"}
-                    We've sent a verification link to <span
-                        class="font-semibold text-foreground"
-                        >{authStore.user?.email}</span
-                    >.
-                {:else}
-                    {contentMap[mode].desc}
-                {/if}
-            </p>
-        </div>
-
-        <Alert type="error" message={error} />
-        <Alert type="success" {message} />
-
+  <div class="mx-auto w-full max-w-sm">
+    <div class="mb-8 text-center sm:mb-10">
+      <h1 class="text-2xl font-bold tracking-tight lowercase">{contentMap[mode].title}</h1>
+      <p class="mt-2 text-xs text-gray-500">
         {#if mode === "verify"}
-            <div class="mt-10 space-y-4">
-                <Button
-                    onclick={checkVerification}
-                    {loading}
-                    className="w-full"
-                >
-                    I've verified my email
-                </Button>
-                <Button
-                    variant="secondary"
-                    onclick={resend}
-                    {loading}
-                    className="w-full"
-                >
-                    Resend verification email
-                </Button>
-                <button
-                    onclick={() => signOut(auth)}
-                    class="mt-6 block w-full text-center text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-rose-500"
-                >
-                    Sign out
-                </button>
-            </div>
+          We've sent a verification link to <span class="font-semibold text-foreground">{authStore.user?.email}</span>.
         {:else}
-            <form onsubmit={handleSubmit} class="space-y-6">
-                <Input
-                    type="email"
-                    id="email"
-                    label="Email Address"
-                    bind:value={email}
-                    placeholder="name@example.com"
-                    required
-                />
-                {#if mode !== "forgot"}
-                    <Input
-                        type="password"
-                        id="password"
-                        label="Password"
-                        bind:value={password}
-                        placeholder="••••••••"
-                        required
-                        labelRight={passwordLabelRight}
-                    />
-                {/if}
-                <Button type="submit" {loading} className="w-full">
-                    {contentMap[mode].title}
-                </Button>
-            </form>
-
-            <div class="mt-8 text-center text-sm">
-                {#if mode === "signin"}
-                    <span class="text-gray-500 dark:text-gray-400"
-                        >Don't have an account?</span
-                    >
-                    <button
-                        onclick={() => (mode = "signup")}
-                        class="ml-1 font-semibold text-gray-800 hover:underline dark:text-white"
-                    >
-                        Sign Up
-                    </button>
-                {:else}
-                    <button
-                        onclick={() => (mode = "signin")}
-                        class="font-semibold text-gray-800 hover:underline dark:text-white"
-                    >
-                        Back to Sign In
-                    </button>
-                {/if}
-            </div>
+          {contentMap[mode].desc}
         {/if}
+      </p>
     </div>
+
+    <Alert type="error" message={error} />
+    <Alert type="success" {message} />
+
+    {#if mode === "verify"}
+      <div class="mt-10 space-y-4">
+        <Button onclick={checkVerification} {loading} className="w-full">I've verified my email</Button>
+        <Button variant="secondary" onclick={resend} {loading} className="w-full">Resend verification email</Button>
+        <button
+          onclick={() => signOut(auth)}
+          class="mt-6 block w-full text-center text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-rose-500"
+        >
+          Sign out
+        </button>
+      </div>
+    {:else}
+      <form onsubmit={handleSubmit} class="space-y-6">
+        <Input
+          type="email"
+          id="email"
+          label="Email Address"
+          bind:value={email}
+          placeholder="name@example.com"
+          required
+        />
+        {#if mode !== "forgot"}
+          <Input
+            type="password"
+            id="password"
+            label="Password"
+            bind:value={password}
+            placeholder="••••••••"
+            required
+            labelRight={passwordLabelRight}
+          />
+        {/if}
+        <Button type="submit" {loading} className="w-full">
+          {contentMap[mode].title}
+        </Button>
+      </form>
+
+      <div class="mt-8 text-center text-sm">
+        {#if mode === "signin"}
+          <span class="text-gray-500 dark:text-gray-400">Don't have an account?</span>
+          <button
+            onclick={() => (mode = "signup")}
+            class="ml-1 font-semibold text-gray-800 hover:underline dark:text-white"
+          >
+            Sign Up
+          </button>
+        {:else}
+          <button
+            onclick={() => (mode = "signin")}
+            class="font-semibold text-gray-800 hover:underline dark:text-white"
+          >
+            Back to Sign In
+          </button>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </div>

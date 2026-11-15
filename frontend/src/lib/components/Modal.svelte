@@ -1,31 +1,34 @@
-<script>
+<script lang="ts">
   import { onMount, onDestroy, tick } from "svelte";
+  import type { Snippet } from "svelte";
 
-  let {
-    show = false,
-    title = "",
-    onClose,
-    showCloseButton = true,
-    showFooter = true,
-    children,
-  } = $props();
+  interface Props {
+    show?: boolean;
+    title?: string;
+    onClose?: () => void;
+    showCloseButton?: boolean;
+    showFooter?: boolean;
+    children?: Snippet;
+  }
 
-  let dialogEl = $state();
-  let lastFocused;
+  let { show = false, title = "", onClose, showCloseButton = true, showFooter = true, children }: Props = $props();
 
-  function getFocusable() {
+  let dialogEl = $state<HTMLDivElement>();
+  let lastFocused: HTMLElement | null = null;
+
+  function getFocusable(): HTMLElement[] {
     if (!dialogEl) return [];
     return Array.from(
-      dialogEl.querySelectorAll(
+      dialogEl.querySelectorAll<HTMLElement>(
         'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       ),
     );
   }
 
-  function handleKeydown(e) {
+  function handleKeydown(e: KeyboardEvent) {
     if (!show) return;
     if (e.key === "Escape") {
-      onClose();
+      onClose?.();
       return;
     }
     if (e.key !== "Tab") return;
@@ -45,7 +48,7 @@
   $effect(() => {
     if (show) {
       document.body.style.overflow = "hidden";
-      lastFocused = document.activeElement;
+      lastFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       tick().then(() => {
         const focusable = getFocusable();
         (focusable[0] || dialogEl)?.focus();
@@ -71,7 +74,7 @@
 
 {#if show}
   <div class="fixed inset-0 z-100 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/40" onclick={onClose} aria-hidden="true"></div>
+    <div class="absolute inset-0 bg-black/40" onclick={() => onClose?.()} aria-hidden="true"></div>
 
     <div
       bind:this={dialogEl}
@@ -84,7 +87,7 @@
         <h3 class="text-sm font-bold uppercase tracking-wider text-foreground">{title}</h3>
         {#if showCloseButton}
           <button
-            onclick={onClose}
+            onclick={() => onClose?.()}
             class="rounded-md border border-transparent p-1.5 text-gray-400 hover:bg-foreground/5 hover:text-foreground transition-none cursor-pointer"
             aria-label="Close modal"
           >
@@ -112,7 +115,7 @@
       {#if showFooter}
         <div class="mt-8 flex justify-end">
           <button
-            onclick={onClose}
+            onclick={() => onClose?.()}
             class="rounded-md border border-border bg-surface px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-foreground hover:bg-foreground hover:text-background hover:border-foreground transition-none cursor-pointer select-none"
           >
             Close

@@ -120,7 +120,7 @@ jobs:
           SUFFIX=""
           [[ "${{ matrix.target }}" == bun-windows-* ]] && SUFFIX=".exe"
           OUT="axe-frontend-${{ matrix.target }}${SUFFIX}"
-          bun build --compile --target=${{ matrix.target }} --minify --sourcemap ./serve.js --outfile "$OUT"
+          bun build --compile --target=${{ matrix.target }} --minify --sourcemap ./serve.ts --outfile "$OUT"
 
       - name: Smoke test Linux binary
         if: matrix.target == 'bun-linux-x64'

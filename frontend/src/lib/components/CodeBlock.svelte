@@ -1,6 +1,13 @@
-<script>
+<script lang="ts">
   import CopyButton from "./CopyButton.svelte";
-  let { code, onCopy = undefined, title = "Bash / Curl" } = $props();
+
+  interface Props {
+    code: string;
+    onCopy?: () => void;
+    title?: string;
+  }
+
+  let { code, onCopy = undefined, title = "Bash / Curl" }: Props = $props();
 </script>
 
 <div class="relative group w-full overflow-hidden rounded-lg border border-border bg-surface">
@@ -8,7 +15,7 @@
     <span class="text-[10px] font-bold uppercase tracking-widest text-gray-500">{title}</span>
     <CopyButton text={code} {onCopy} label="Copy" />
   </div>
-  
+
   <div class="overflow-x-auto p-4">
     <pre class="text-xs text-foreground whitespace-pre"><code>{code}</code></pre>
   </div>

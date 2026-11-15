@@ -1,46 +1,51 @@
-<script>
+<script lang="ts">
   import { onMount, untrack } from "svelte";
   import { Router, Route, Link, navigate } from "svelte5-router";
   import { signOut } from "firebase/auth";
   import { auth } from "./lib/services/firebase";
-  import { authStore } from "./lib/stores/authStore.svelte.js";
-  import { themeStore } from "./lib/stores/themeStore.svelte.js";
+  import { authStore } from "./lib/stores/authStore.svelte.ts";
+  import { themeStore } from "./lib/stores/themeStore.svelte.ts";
   import {
     subscribeNotifications,
     deleteNotification,
     clearAllNotifications,
     getNotificationsCount,
+    type NotificationItem,
   } from "./lib/services/notificationService";
-  import {
-    requestNotificationPermission,
-    sendLocalNotification,
-  } from "./lib/utils/notificationPermission.js";
+  import { requestNotificationPermission, sendLocalNotification } from "./lib/utils/notificationPermission.ts";
   import NotificationBar from "./lib/components/NotificationBar.svelte";
   import PlayerBar from "./lib/components/PlayerBar.svelte";
-  import { playerStore } from "./lib/stores/playerStore.svelte.js";
+  import { playerStore } from "./lib/stores/playerStore.svelte.ts";
   import Home from "./pages/Home.svelte";
   import Lazy from "./lib/components/Lazy.svelte";
+  import type { Unsubscribe } from "firebase/firestore";
 
-  let { url = "" } = $props();
+  interface Props {
+    url?: string;
+  }
 
-  let notifications = $state([]);
+  let { url = "" }: Props = $props();
+
+  let notifications = $state<NotificationItem[]>([]);
   let totalNotificationsCount = $state(0);
   let notificationLimit = $state(20);
   let initialLoadDone = false;
-  let unsubscribe = null;
+  let unsubscribe: Unsubscribe | null = null;
   let currentPath = $state(window.location.pathname);
 
   onMount(() => {
-    const handleLocationChange = () => { currentPath = window.location.pathname; };
+    const handleLocationChange = () => {
+      currentPath = window.location.pathname;
+    };
     window.addEventListener("popstate", handleLocationChange);
     const originalPushState = history.pushState;
     const originalReplaceState = history.replaceState;
-    history.pushState = function() {
-      originalPushState.apply(this, arguments);
+    history.pushState = function (this: History, ...args: Parameters<History["pushState"]>) {
+      originalPushState.apply(this, args);
       handleLocationChange();
     };
-    history.replaceState = function() {
-      originalReplaceState.apply(this, arguments);
+    history.replaceState = function (this: History, ...args: Parameters<History["replaceState"]>) {
+      originalReplaceState.apply(this, args);
       handleLocationChange();
     };
     return () => {
@@ -50,7 +55,7 @@
     };
   });
 
-  async function loadTotalNotificationsCount() {
+  async function loadTotalNotificationsCount(): Promise<void> {
     if (authStore.user?.email) {
       totalNotificationsCount = await getNotificationsCount(authStore.user.email);
     }
@@ -60,15 +65,23 @@
     notificationLimit += 20;
   };
 
-  const handleLogout = async () => {
-    try { await signOut(auth); } catch (e) { console.error(e); }
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const dismiss = async (id) => {
-    try { await deleteNotification(id); } catch (e) { console.error(e); }
+  const dismiss = async (id: string): Promise<void> => {
+    try {
+      await deleteNotification(id);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleClearAll = async () => {
+  const handleClearAll = async (): Promise<void> => {
     try {
       const token = await auth.currentUser?.getIdToken();
       if (token) {
@@ -86,10 +99,10 @@
 
   $effect(() => {
     const user = authStore.user;
-    if (user && authStore.isVerified) {
+    if (user && authStore.isVerified && user.email) {
       if (unsubscribe) unsubscribe();
-      requestNotificationPermission();
-      loadTotalNotificationsCount();
+      void requestNotificationPermission();
+      void loadTotalNotificationsCount();
 
       unsubscribe = subscribeNotifications(
         user.email,
@@ -101,7 +114,7 @@
               sendLocalNotification(newest.title, {
                 body: `${newest.source}: ${newest.message}`,
                 tag: newest.id,
-                onClick: () => navigate("/notifications")
+                onClick: () => navigate("/notifications"),
               });
             }
           }
@@ -123,17 +136,29 @@
 {#snippet accessDenied()}
   <div class="flex flex-col items-center justify-center py-20 text-center">
     <div class="mb-6 rounded-full border border-rose-500/20 bg-rose-500/5 p-4 text-rose-500">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      <svg
+        width="40"
+        height="40"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
       </svg>
     </div>
     <h1 class="text-xl font-bold tracking-tight lowercase">access denied</h1>
     <p class="mt-2 max-w-sm text-xs font-semibold uppercase tracking-wider text-gray-500">
       this module is restricted to administrators only.
     </p>
-    <Link to="/" class="mt-8 flex h-10 items-center justify-center rounded-md border border-border bg-surface px-6 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none">
+    <Link
+      to="/"
+      class="mt-8 flex h-10 items-center justify-center rounded-md border border-border bg-surface px-6 text-[10px] font-bold uppercase tracking-widest text-foreground hover:bg-foreground hover:text-background hover:border-foreground cursor-pointer transition-none select-none"
+    >
       go home
     </Link>
   </div>
@@ -148,20 +173,20 @@
 {:else}
   <Router {url}>
     <div class="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
-        <NotificationBar
-          {currentPath}
-          {notifications}
-          themeMode={themeStore.mode}
-          onThemeCycle={() => themeStore.cycleTheme()}
-          onSignOut={handleLogout}
-          onClearAll={handleClearAll}
-        />
+      <NotificationBar
+        {currentPath}
+        {notifications}
+        themeMode={themeStore.mode}
+        onThemeCycle={() => themeStore.cycleTheme()}
+        onSignOut={handleLogout}
+        onClearAll={handleClearAll}
+      />
 
       <main class="flex flex-1 overflow-y-auto overflow-x-hidden">
         <section class="mx-auto flex min-h-full w-full max-w-4xl flex-col px-4 py-8 md:p-8">
           <Route path="/"><Home /></Route>
           <Route path="/notifications">
-            <Lazy 
+            <Lazy
               load={() => import("./pages/Notifications.svelte")}
               {notifications}
               totalCount={totalNotificationsCount}

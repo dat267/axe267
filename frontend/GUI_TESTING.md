@@ -13,9 +13,10 @@ cd frontend && npm run test:component
 
 ### Pattern
 
-- Tests live beside components: `src/lib/components/<Name>.test.js`
+- Tests live beside components: `src/lib/components/<Name>.test.ts`
+- Tests are TypeScript and are type-checked by `svelte-check` (part of `npm run lint`)
 - Use `render(Component, { props: {...} })` from `@testing-library/svelte`
-- Use `text(str)` helper from `test-utils.js` for passing children as snippets
+- Use `text(str)` helper from `test-utils.ts` for passing children as snippets
 - Use `userEvent` from `@testing-library/user-event` for user interactions
 - Assert with `expect(...).toBeInTheDocument()` from `@testing-library/jest-dom`
 
@@ -24,7 +25,7 @@ cd frontend && npm run test:component
 ```js
 import { render, screen } from "@testing-library/svelte";
 import userEvent from "@testing-library/user-event";
-import { text } from "./test-utils.js";
+import { text } from "./test-utils.ts";
 import Button from "./Button.svelte";
 
 it("calls onclick when clicked", async () => {
@@ -55,7 +56,7 @@ cd frontend && npm run test:e2e
 ### Setup
 
 Playwright config: `frontend/playwright.config.js`
-Test files: `frontend/e2e/`
+Test files: `frontend/e2e/*.spec.ts`
 
 ### Pattern
 

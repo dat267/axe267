@@ -1,9 +1,19 @@
-<script>
+<script lang="ts">
   import { link } from "svelte5-router";
   import Icon from "./Icon.svelte";
   import Modal from "./Modal.svelte";
   import Button from "./Button.svelte";
   import { ICONS } from "../utils/icons";
+  import type { ThemeMode } from "../stores/themeStore.svelte";
+
+  interface Props {
+    currentPath?: string;
+    notifications?: readonly { id: string }[];
+    themeMode?: ThemeMode;
+    onThemeCycle?: () => void;
+    onSignOut?: () => void | Promise<void>;
+    onClearAll?: () => void | Promise<void>;
+  }
 
   let {
     currentPath = "/",
@@ -12,7 +22,7 @@
     onThemeCycle,
     onSignOut,
     onClearAll,
-  } = $props();
+  }: Props = $props();
 
   let showClearConfirm = $state(false);
   let showSignOutConfirm = $state(false);
@@ -28,13 +38,15 @@
     }
   }
   let isDeleting = $state(false);
-  let confirmTimer;
+  let confirmTimer: ReturnType<typeof setTimeout> | undefined;
 
   async function handleClearAll() {
     if (!showClearConfirm) {
       showClearConfirm = true;
       clearTimeout(confirmTimer);
-      confirmTimer = setTimeout(() => { showClearConfirm = false; }, 3000);
+      confirmTimer = setTimeout(() => {
+        showClearConfirm = false;
+      }, 3000);
       return;
     }
     showClearConfirm = false;
@@ -48,14 +60,18 @@
   }
 </script>
 
-<header class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8">
+<header
+  class="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background p-4 md:px-8"
+>
   <div class="flex items-center gap-2">
     {#if currentPath !== "/"}
       <a href="/" use:link class="icon-btn" aria-label="Back">
         <Icon svg={ICONS.BACK} size={20} />
       </a>
     {:else}
-      <div class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-gray-300 dark:text-gray-700 select-none cursor-not-allowed">
+      <div
+        class="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background text-gray-300 dark:text-gray-700 select-none cursor-not-allowed"
+      >
         <Icon svg={ICONS.BACK} size={20} />
       </div>
     {/if}
@@ -68,7 +84,9 @@
       <button
         onclick={handleClearAll}
         disabled={notifications.length === 0 || isDeleting}
-        class="icon-btn {showClearConfirm ? '!border-rose-500 !bg-rose-500 !text-white hover:!bg-rose-600 hover:!border-rose-600' : ''}"
+        class="icon-btn {showClearConfirm
+          ? '!border-rose-500 !bg-rose-500 !text-white hover:!bg-rose-600 hover:!border-rose-600'
+          : ''}"
         aria-label={showClearConfirm ? "Confirm clear all" : "Clear all notifications"}
       >
         {#if isDeleting}
@@ -80,7 +98,7 @@
         {/if}
       </button>
     {/if}
-    <button onclick={onThemeCycle} class="icon-btn" aria-label="Cycle theme">
+    <button onclick={() => onThemeCycle?.()} class="icon-btn" aria-label="Cycle theme">
       {#if themeMode === "dark"}
         <Icon svg={ICONS.MOON} size={20} />
       {:else if themeMode === "light"}

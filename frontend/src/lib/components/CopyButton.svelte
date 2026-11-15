@@ -1,10 +1,12 @@
-<script>
-  let { 
-    text, 
-    onCopy = undefined, 
-    className = "",
-    label = ""
-  } = $props();
+<script lang="ts">
+  interface Props {
+    text: string;
+    onCopy?: () => void;
+    className?: string;
+    label?: string;
+  }
+
+  let { text, onCopy = undefined, className = "", label = "" }: Props = $props();
 
   let copied = $state(false);
 
@@ -16,24 +18,26 @@
         textArea.value = text;
         document.body.appendChild(textArea);
         textArea.select();
-        document.execCommand('copy');
+        document.execCommand("copy");
         document.body.removeChild(textArea);
       } else {
         await navigator.clipboard.writeText(text);
       }
       copied = true;
       onCopy?.();
-      setTimeout(() => copied = false, 2000);
+      setTimeout(() => (copied = false), 2000);
     } catch (err) {
-      console.error('Failed to copy: ', err);
+      console.error("Failed to copy: ", err);
     }
   }
 </script>
 
-<button 
+<button
   type="button"
   onclick={copyToClipboard}
-  class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider {className} {copied ? 'text-emerald-500' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-500/5'}"
+  class="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider {className} {copied
+    ? 'text-emerald-500'
+    : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-500/5'}"
   aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
 >
   {#if copied}

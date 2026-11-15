@@ -1,8 +1,39 @@
-<script>
+<script lang="ts">
   import Icon from "./Icon.svelte";
   import Input from "./Input.svelte";
   import Button from "./Button.svelte";
   import { ICONS } from "../utils/icons";
+  import type { EpubMetadata, EpubSearchResult } from "epubjs";
+  import type { BookFlow, TocItem } from "../services/bookRenderer";
+  import type { ThemeMode } from "../stores/themeStore.svelte";
+
+  interface TypographyInput {
+    fontSize: number;
+    fontFamily: string;
+    lineHeight: number;
+  }
+
+  interface Props {
+    metadata?: EpubMetadata | null;
+    progress?: number;
+    toc?: TocItem[];
+    currentBookName?: string;
+    flow?: BookFlow;
+    fontSize?: number;
+    fontFamily?: string;
+    lineHeight?: number;
+    isBookLoading?: boolean;
+    themeMode?: ThemeMode;
+    onClose?: () => void;
+    onNext?: () => void;
+    onPrev?: () => void;
+    onJumpTo?: (target: string) => void;
+    onSearch?: (query: string) => Promise<EpubSearchResult[]>;
+    onApplyTypography?: (settings: TypographyInput) => void;
+    onSwitchFlow?: (flow: BookFlow) => void;
+    onThemeCycle?: () => void;
+    onReaderElement?: (element: HTMLElement) => void;
+  }
 
   let {
     metadata = null,
@@ -24,9 +55,9 @@
     onSwitchFlow,
     onThemeCycle,
     onReaderElement,
-  } = $props();
+  }: Props = $props();
 
-  let readerElement = $state();
+  let readerElement = $state<HTMLDivElement>();
   $effect(() => {
     if (readerElement) onReaderElement?.(readerElement);
   });
@@ -35,7 +66,7 @@
   let showGoTo = $state(false);
   let showSettings = $state(false);
   let gotoSearch = $state("");
-  let searchResults = $state([]);
+  let searchResults = $state<EpubSearchResult[]>([]);
   let isSearching = $state(false);
   let hasSearched = $state(false);
   let searchRequest = 0;
@@ -76,13 +107,16 @@
       <span
         class="block min-w-0 text-[10px] font-bold uppercase tracking-widest text-gray-500 truncate"
         title={metadata?.title || currentBookName}
-      >{metadata?.title || currentBookName}</span>
+        >{metadata?.title || currentBookName}</span
+      >
       {#if progress > 0}
-        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400/60 mt-0.5">{(progress * 100).toFixed(0)}% read</span>
+        <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400/60 mt-0.5"
+          >{(progress * 100).toFixed(0)}% read</span
+        >
       {/if}
     </div>
     <div class="flex shrink-0 items-center gap-2">
-      <button onclick={onThemeCycle} class="icon-btn" aria-label="Cycle theme">
+      <button onclick={() => onThemeCycle?.()} class="icon-btn" aria-label="Cycle theme">
         {#if themeMode === "dark"}
           <Icon svg={ICONS.MOON} size={20} />
         {:else if themeMode === "light"}
@@ -91,7 +125,7 @@
           <Icon svg={ICONS.MONITOR} size={20} />
         {/if}
       </button>
-      <button onclick={onClose} class="icon-btn danger" aria-label="Close reader">
+      <button onclick={() => onClose?.()} class="icon-btn danger" aria-label="Close reader">
         <Icon svg={ICONS.CLOSE} size={20} />
       </button>
     </div>
@@ -100,7 +134,9 @@
   <div class="relative flex-1 flex min-h-0 overflow-hidden">
     <div
       bind:this={readerElement}
-      class="flex-1 h-full mx-auto w-full overflow-hidden {flow === 'paginated' ? 'py-4 md:py-12' : ''} {flow === 'scrolled' ? 'max-w-3xl' : 'max-w-none'}"
+      class="flex-1 h-full mx-auto w-full overflow-hidden {flow === 'paginated'
+        ? 'py-4 md:py-12'
+        : ''} {flow === 'scrolled' ? 'max-w-3xl' : 'max-w-none'}"
     ></div>
 
     {#if isBookLoading}
@@ -110,10 +146,18 @@
     {/if}
 
     {#if showToc}
-      <div class="absolute inset-y-0 right-0 w-full md:w-80 bg-background border-l-0 md:border-l border-border z-10 flex flex-col p-6 transition-none">
+      <div
+        class="absolute inset-y-0 right-0 w-full md:w-80 bg-background border-l-0 md:border-l border-border z-10 flex flex-col p-6 transition-none"
+      >
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-[10px] font-bold uppercase tracking-widest text-foreground">contents</h2>
-          <button onclick={() => { showToc = false; }} class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer">back</button>
+          <button
+            onclick={() => {
+              showToc = false;
+            }}
+            class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer"
+            >back</button
+          >
         </div>
         <div class="flex-1 overflow-y-auto space-y-2">
           {#each toc as item (item.target || item.label)}
@@ -130,10 +174,18 @@
     {/if}
 
     {#if showGoTo}
-      <div class="absolute inset-y-0 right-0 w-full md:w-80 bg-background border-l-0 md:border-l border-border z-10 flex flex-col p-6 transition-none">
+      <div
+        class="absolute inset-y-0 right-0 w-full md:w-80 bg-background border-l-0 md:border-l border-border z-10 flex flex-col p-6 transition-none"
+      >
         <div class="flex items-center justify-between mb-8">
           <h2 class="text-[10px] font-bold uppercase tracking-widest text-foreground">search</h2>
-          <button onclick={() => { showGoTo = false; }} class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer">back</button>
+          <button
+            onclick={() => {
+              showGoTo = false;
+            }}
+            class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer"
+            >back</button
+          >
         </div>
         <div class="flex-1 flex flex-col overflow-hidden">
           <div class="flex items-end gap-2 mb-6">
@@ -175,19 +227,30 @@
     {/if}
 
     {#if showSettings}
-      <div class="absolute inset-y-0 right-0 w-full md:w-80 bg-background border-l-0 md:border-l border-border z-10 flex flex-col p-6 transition-none">
+      <div
+        class="absolute inset-y-0 right-0 w-full md:w-80 bg-background border-l-0 md:border-l border-border z-10 flex flex-col p-6 transition-none"
+      >
         <div class="flex items-center justify-between mb-8">
           <h2 class="text-[10px] font-bold uppercase tracking-widest text-foreground">settings</h2>
-          <button onclick={() => { showSettings = false; }} class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer">back</button>
+          <button
+            onclick={() => {
+              showSettings = false;
+            }}
+            class="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-foreground transition-none cursor-pointer"
+            >back</button
+          >
         </div>
         <div class="space-y-6">
           <div>
             <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">font size (px)</p>
             <div class="flex items-center gap-2">
               <button
-                onclick={() => { fontSize = Math.max(8, (Number(fontSize) || 16) - 1); onApplyTypography?.({ fontSize, fontFamily, lineHeight }); }}
-                class="icon-btn font-bold"
-              >-</button>
+                onclick={() => {
+                  fontSize = Math.max(8, (Number(fontSize) || 16) - 1);
+                  onApplyTypography?.({ fontSize, fontFamily, lineHeight });
+                }}
+                class="icon-btn font-bold">-</button
+              >
               <input
                 type="number"
                 min="8"
@@ -198,9 +261,12 @@
                 class="flex-1 h-10 bg-background border border-border rounded-md text-center text-sm font-mono font-bold outline-none focus:border-foreground text-foreground"
               />
               <button
-                onclick={() => { fontSize = Math.min(96, (Number(fontSize) || 16) + 1); onApplyTypography?.({ fontSize, fontFamily, lineHeight }); }}
-                class="icon-btn font-bold"
-              >+</button>
+                onclick={() => {
+                  fontSize = Math.min(96, (Number(fontSize) || 16) + 1);
+                  onApplyTypography?.({ fontSize, fontFamily, lineHeight });
+                }}
+                class="icon-btn font-bold">+</button
+              >
             </div>
           </div>
           <div>
@@ -208,9 +274,12 @@
             <div class="grid grid-cols-3 gap-2">
               {#each FONT_OPTIONS as option (option.value)}
                 <button
-                  onclick={() => { fontFamily = option.value; onApplyTypography?.({ fontSize, fontFamily, lineHeight }); }}
-                  class="chip {fontFamily === option.value ? 'active' : 'inactive'} py-2"
-                >{option.label}</button>
+                  onclick={() => {
+                    fontFamily = option.value;
+                    onApplyTypography?.({ fontSize, fontFamily, lineHeight });
+                  }}
+                  class="chip {fontFamily === option.value ? 'active' : 'inactive'} py-2">{option.label}</button
+                >
               {/each}
             </div>
           </div>
@@ -218,9 +287,12 @@
             <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">line spacing</p>
             <div class="flex items-center gap-2">
               <button
-                onclick={() => { lineHeight = Math.max(1.0, parseFloat(((Number(lineHeight) || 1.5) - 0.1).toFixed(1))); onApplyTypography?.({ fontSize, fontFamily, lineHeight }); }}
-                class="icon-btn font-bold"
-              >-</button>
+                onclick={() => {
+                  lineHeight = Math.max(1.0, parseFloat(((Number(lineHeight) || 1.5) - 0.1).toFixed(1)));
+                  onApplyTypography?.({ fontSize, fontFamily, lineHeight });
+                }}
+                class="icon-btn font-bold">-</button
+              >
               <input
                 type="number"
                 min="1.0"
@@ -232,22 +304,29 @@
                 class="flex-1 h-10 bg-background border border-border rounded-md text-center text-sm font-mono font-bold outline-none focus:border-foreground text-foreground"
               />
               <button
-                onclick={() => { lineHeight = Math.min(3.0, parseFloat(((Number(lineHeight) || 1.5) + 0.1).toFixed(1))); onApplyTypography?.({ fontSize, fontFamily, lineHeight }); }}
-                class="icon-btn font-bold"
-              >+</button>
+                onclick={() => {
+                  lineHeight = Math.min(3.0, parseFloat(((Number(lineHeight) || 1.5) + 0.1).toFixed(1)));
+                  onApplyTypography?.({ fontSize, fontFamily, lineHeight });
+                }}
+                class="icon-btn font-bold">+</button
+              >
             </div>
           </div>
           <div>
             <p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">layout</p>
             <div class="grid grid-cols-2 gap-2">
               <button
-                onclick={() => { if (flow !== "paginated") onSwitchFlow?.("paginated"); }}
-                class="chip {flow === 'paginated' ? 'active' : 'inactive'} py-2"
-              >pages</button>
+                onclick={() => {
+                  if (flow !== "paginated") onSwitchFlow?.("paginated");
+                }}
+                class="chip {flow === 'paginated' ? 'active' : 'inactive'} py-2">pages</button
+              >
               <button
-                onclick={() => { if (flow !== "scrolled") onSwitchFlow?.("scrolled"); }}
-                class="chip {flow === 'scrolled' ? 'active' : 'inactive'} py-2"
-              >scroll</button>
+                onclick={() => {
+                  if (flow !== "scrolled") onSwitchFlow?.("scrolled");
+                }}
+                class="chip {flow === 'scrolled' ? 'active' : 'inactive'} py-2">scroll</button
+              >
             </div>
           </div>
         </div>
@@ -261,41 +340,53 @@
               lineHeight = 1.5;
               onApplyTypography?.({ fontSize, fontFamily, lineHeight });
               if (flow !== "paginated") onSwitchFlow?.("paginated");
-            }}
-          >reset defaults</Button>
+            }}>reset defaults</Button
+          >
         </div>
       </div>
     {/if}
   </div>
 
   <footer class="shrink-0 h-16 flex items-center justify-between border-t border-border bg-background p-4 md:px-8">
-    <button onclick={onPrev} class="icon-btn" aria-label="Prev">
+    <button onclick={() => onPrev?.()} class="icon-btn" aria-label="Prev">
       <Icon svg={ICONS.PREV} size={20} />
     </button>
     <div class="icon-toggle-group">
       <button
-        onclick={() => { showSettings = !showSettings; showGoTo = false; showToc = false; }}
+        onclick={() => {
+          showSettings = !showSettings;
+          showGoTo = false;
+          showToc = false;
+        }}
         class="icon-btn {showSettings ? 'icon-active' : 'icon-inactive'}"
         aria-label="Typography settings"
       >
         <Icon svg={ICONS.TYPOGRAPHY} size={18} />
       </button>
       <button
-        onclick={() => { showGoTo = !showGoTo; showToc = false; showSettings = false; }}
+        onclick={() => {
+          showGoTo = !showGoTo;
+          showToc = false;
+          showSettings = false;
+        }}
         class="icon-btn {showGoTo ? 'icon-active' : 'icon-inactive'}"
         aria-label="Search book"
       >
         <Icon svg={ICONS.SEARCH} size={18} />
       </button>
       <button
-        onclick={() => { showToc = !showToc; showGoTo = false; showSettings = false; }}
+        onclick={() => {
+          showToc = !showToc;
+          showGoTo = false;
+          showSettings = false;
+        }}
         class="icon-btn {showToc ? 'icon-active' : 'icon-inactive'}"
         aria-label="Table of contents"
       >
         <Icon svg={ICONS.TOC} size={18} />
       </button>
     </div>
-    <button onclick={onNext} class="icon-btn" aria-label="Next">
+    <button onclick={() => onNext?.()} class="icon-btn" aria-label="Next">
       <Icon svg={ICONS.NEXT} size={20} />
     </button>
   </footer>

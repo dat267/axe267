@@ -1,9 +1,9 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import { getStorageInstance } from "../lib/services/firebase";
-  import { authStore } from "../lib/stores/authStore.svelte.js";
+  import { authStore } from "../lib/stores/authStore.svelte.ts";
   import { ICONS } from "../lib/utils/icons";
-  import { playerStore } from "../lib/stores/playerStore.svelte.js";
+  import { playerStore } from "../lib/stores/playerStore.svelte.ts";
   import { MAX_UPLOAD_SIZE_MB } from "../lib/utils/constants";
   import {
     AUDIO_ACCEPT,
@@ -11,13 +11,15 @@
     listTracks,
     uploadTrack,
     deleteTrack as deleteTrackFromStorage,
+    type MusicTrack,
   } from "../lib/services/musicService";
   import Button from "../lib/components/Button.svelte";
   import Modal from "../lib/components/Modal.svelte";
   import Icon from "../lib/components/Icon.svelte";
+  import type { FirebaseStorage } from "firebase/storage";
 
-  let storage;
-  let tracks = $state([]);
+  let storage: FirebaseStorage | undefined;
+  let tracks = $state<MusicTrack[]>([]);
   let isLoading = $state(true);
   let loadError = $state("");
 
@@ -25,11 +27,11 @@
 
   // Upload state.
   let showUploadModal = $state(false);
-  let uploadFiles = $state([]);
+  let uploadFiles = $state<File[]>([]);
   let isUploading = $state(false);
   let uploadProgress = $state("");
   let uploadError = $state("");
-  let fileInput = $state();
+  let fileInput = $state<HTMLInputElement>();
 
   let isDeleting = $state(false);
 
@@ -48,12 +50,12 @@
     }
   }
 
-  function playTrack(track) {
-    playerStore.play(track, tracks);
+  function playTrack(track: MusicTrack) {
+    void playerStore.play(track, tracks);
   }
 
   onMount(() => {
-    loadLibrary();
+    void loadLibrary();
   });
 
   function openUploadModal() {
@@ -68,13 +70,13 @@
     showUploadModal = false;
   }
 
-  function handleFileChange(e) {
-    const input = /** @type {HTMLInputElement} */ (e.target);
+  function handleFileChange(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
     uploadFiles = Array.from(input.files ?? []);
     uploadError = "";
   }
 
-  async function handleUpload(e) {
+  async function handleUpload(e: SubmitEvent) {
     e.preventDefault();
     if (uploadFiles.length === 0) return;
     uploadError = "";
@@ -91,13 +93,19 @@
       return;
     }
 
+    const storageInstance = storage;
+    if (!storageInstance) {
+      uploadError = "Storage is unavailable. Refresh and try again.";
+      return;
+    }
+
     isUploading = true;
-    const failed = [];
+    const failed: string[] = [];
     try {
       for (const [i, file] of uploadFiles.entries()) {
         uploadProgress = `${i + 1}/${uploadFiles.length}`;
         try {
-          await uploadTrack(storage, file);
+          await uploadTrack(storageInstance, file);
           // Re-uploading a name replaces the object; drop any stale URL.
           playerStore.invalidate(`music/${file.name}`);
         } catch (err) {
@@ -121,9 +129,10 @@
     showUploadModal = false;
   }
 
-  async function deleteTrack(track) {
+  async function deleteTrack(track: MusicTrack) {
     if (!authStore.isAdmin || isDeleting) return;
     if (!confirm(`Permanently delete ${track.title}?`)) return;
+    if (!storage) return;
     isDeleting = true;
     try {
       await deleteTrackFromStorage(storage, track.filePath);
@@ -142,11 +151,18 @@
   <div class="mb-8 flex items-center justify-between gap-4">
     <h1 class="text-2xl font-bold tracking-tight lowercase">music</h1>
     <div class="flex items-center gap-6">
-      <button onclick={loadLibrary} disabled={isLoading} class="text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 disabled:opacity-30 transition-none cursor-pointer">
+      <button
+        onclick={loadLibrary}
+        disabled={isLoading}
+        class="text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 disabled:opacity-30 transition-none cursor-pointer"
+      >
         {isLoading ? "..." : "refresh"}
       </button>
       {#if authStore.isAdmin}
-        <button onclick={openUploadModal} class="text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 transition-none cursor-pointer">
+        <button
+          onclick={openUploadModal}
+          class="text-[10px] font-bold uppercase tracking-widest text-foreground hover:opacity-70 transition-none cursor-pointer"
+        >
           upload
         </button>
       {/if}
@@ -157,7 +173,9 @@
     <Modal show={showUploadModal} title="upload music" onClose={closeUploadModal} showFooter={false}>
       <form onsubmit={handleUpload} class="flex flex-col gap-6">
         <div>
-          <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1" for="music-files">select files</label>
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1" for="music-files"
+            >select files</label
+          >
           <input
             bind:this={fileInput}
             type="file"
@@ -188,11 +206,17 @@
 
   <div class="border-border" class:border-t={tracks.length > 0}>
     {#if isLoading && tracks.length === 0}
-      <div class="py-20 text-center"><span class="text-sm font-bold uppercase tracking-widest text-gray-500/50">syncing bucket...</span></div>
+      <div class="py-20 text-center">
+        <span class="text-sm font-bold uppercase tracking-widest text-gray-500/50">syncing bucket...</span>
+      </div>
     {:else if loadError && tracks.length === 0}
-      <div class="py-20 text-center"><span class="text-sm font-bold uppercase tracking-widest text-rose-500/70">{loadError}</span></div>
+      <div class="py-20 text-center">
+        <span class="text-sm font-bold uppercase tracking-widest text-rose-500/70">{loadError}</span>
+      </div>
     {:else if tracks.length === 0}
-      <div class="py-20 text-center"><span class="text-sm font-bold uppercase tracking-widest text-gray-500/50">no tracks yet</span></div>
+      <div class="py-20 text-center">
+        <span class="text-sm font-bold uppercase tracking-widest text-gray-500/50">no tracks yet</span>
+      </div>
     {:else}
       {#each tracks as track (track.filePath)}
         {@const isCurrent = track.filePath === currentPath}
@@ -219,12 +243,23 @@
               {/if}
             </div>
             <div class="flex flex-col overflow-hidden">
-              <span class="line-clamp-2 break-words text-xs font-bold uppercase tracking-widest transition-none {isCurrent ? 'text-foreground' : 'text-gray-500 group-hover:text-foreground'}">{track.title}</span>
-              <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400/60 truncate mt-0.5">{track.fileName.split(".").pop()}</span>
+              <span
+                class="line-clamp-2 break-words text-xs font-bold uppercase tracking-widest transition-none {isCurrent
+                  ? 'text-foreground'
+                  : 'text-gray-500 group-hover:text-foreground'}">{track.title}</span
+              >
+              <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400/60 truncate mt-0.5"
+                >{track.fileName.split(".").pop()}</span
+              >
             </div>
           </button>
           {#if authStore.isAdmin}
-            <button onclick={() => deleteTrack(track)} disabled={isDeleting} class="icon-btn muted shrink-0" aria-label="Delete {track.title}">
+            <button
+              onclick={() => deleteTrack(track)}
+              disabled={isDeleting}
+              class="icon-btn muted shrink-0"
+              aria-label="Delete {track.title}"
+            >
               <Icon svg={ICONS.DELETE} size={18} />
             </button>
           {/if}

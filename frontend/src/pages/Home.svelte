@@ -1,18 +1,24 @@
-<script>
+<script lang="ts">
   import { Link } from "svelte5-router";
-  import { ICONS } from "../lib/utils/icons";
-  import { authStore } from "../lib/stores/authStore.svelte.js";
+  import { ICONS, type IconName } from "../lib/utils/icons";
+  import { authStore } from "../lib/stores/authStore.svelte.ts";
 
-  const APPS = $derived([
-    { to: "/notifications", label: "Notifications", icon: ICONS.NOTIFICATION },
+  interface AppLink {
+    to: string;
+    label: string;
+    icon: IconName;
+  }
+
+  const APPS = $derived<AppLink[]>([
+    { to: "/notifications", label: "Notifications", icon: "NOTIFICATION" },
     ...(authStore.isAdmin
-      ? [
-          { to: "/reader", label: "Reader", icon: ICONS.BOOK },
-          { to: "/music", label: "Music", icon: ICONS.MUSIC },
-        ]
+      ? ([
+          { to: "/reader", label: "Reader", icon: "BOOK" },
+          { to: "/music", label: "Music", icon: "MUSIC" },
+        ] satisfies AppLink[])
       : []),
-    { to: "/integrations", label: "Integrations", icon: ICONS.INTEGRATION },
-    { to: "/settings", label: "Settings", icon: ICONS.SETTINGS },
+    { to: "/integrations", label: "Integrations", icon: "INTEGRATION" },
+    { to: "/settings", label: "Settings", icon: "SETTINGS" },
   ]);
 
   $effect(() => {
@@ -57,8 +63,7 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <!-- eslint-disable-next-line svelte/no-at-html-tags -- app.icon comes from ICONS (static, trusted constants); do not pass user input -->
-            {@html app.icon}
+            <path d={ICONS[app.icon]} />
           </svg>
         </div>
         <span

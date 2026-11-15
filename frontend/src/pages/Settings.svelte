@@ -1,7 +1,7 @@
-<script>
+<script lang="ts">
   import { auth } from "../lib/services/firebase";
-  import { authStore } from "../lib/stores/authStore.svelte.js";
-  import { getErrorMessage } from "../lib/utils/authErrors";
+  import { authStore } from "../lib/stores/authStore.svelte.ts";
+  import { getErrorMessage } from "../lib/utils/authErrors.ts";
   import { updateEmail, deleteAccount, reauthenticate } from "../lib/services/accountService";
   import Input from "../lib/components/Input.svelte";
   import Button from "../lib/components/Button.svelte";
@@ -13,9 +13,9 @@
   let message = $state("");
   let loading = $state(false);
   let showReauth = $state(false);
-  let pendingAction = $state(null);
+  let pendingAction = $state<"email" | "delete" | null>(null);
 
-  async function handleUpdateEmail(e) {
+  async function handleUpdateEmail(e: SubmitEvent) {
     e.preventDefault();
     error = "";
     message = "";
@@ -23,7 +23,9 @@
     pendingAction = "email";
 
     try {
-      const result = await updateEmail(auth.currentUser, newEmail);
+      const user = auth.currentUser;
+      if (!user) return;
+      const result = await updateEmail(user, newEmail);
       if (result.success) {
         message = "A verification email has been sent to your new address. Please verify it to complete the change.";
         newEmail = "";
@@ -39,19 +41,16 @@
   }
 
   async function handleDeleteAccount() {
-    if (
-      !confirm(
-        "Are you absolutely sure? This action is permanent and cannot be undone.",
-      )
-    )
-      return;
+    if (!confirm("Are you absolutely sure? This action is permanent and cannot be undone.")) return;
 
     error = "";
     loading = true;
     pendingAction = "delete";
 
     try {
-      const result = await deleteAccount(auth.currentUser);
+      const user = auth.currentUser;
+      if (!user) return;
+      const result = await deleteAccount(user);
       if (!result.success && result.requiresReauth) {
         showReauth = true;
         error = getErrorMessage(result.error);
@@ -63,12 +62,14 @@
     }
   }
 
-  async function handleReauth(e) {
+  async function handleReauth(e: SubmitEvent) {
     e.preventDefault();
     error = "";
     loading = true;
     try {
-      const result = await reauthenticate(auth.currentUser, password);
+      const user = auth.currentUser;
+      if (!user) return;
+      const result = await reauthenticate(user, password);
       if (result.success) {
         showReauth = false;
         password = "";
@@ -91,7 +92,9 @@
     message = "";
     loading = true;
     try {
-      const result = await updateEmail(auth.currentUser, newEmail);
+      const user = auth.currentUser;
+      if (!user) return;
+      const result = await updateEmail(user, newEmail);
       if (result.success) {
         message = "A verification email has been sent to your new address. Please verify it to complete the change.";
         newEmail = "";
@@ -119,7 +122,15 @@
           <Input type="password" id="password" label="Password" bind:value={password} placeholder="••••••••" required />
           <div class="flex gap-4">
             <Button type="submit" {loading} className="grow">confirm</Button>
-            <Button type="button" variant="ghost" onclick={() => { showReauth = false; password = ""; error = ""; }}>cancel</Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onclick={() => {
+                showReauth = false;
+                password = "";
+                error = "";
+              }}>cancel</Button
+            >
           </div>
         </form>
       </div>
@@ -135,8 +146,18 @@
           <p class="text-xs font-bold truncate text-foreground">{authStore.user?.email}</p>
         </div>
         <form onsubmit={handleUpdateEmail} class="space-y-8 pt-8 border-t border-border/30">
-          <Input type="email" id="newEmail" label="New Email Address" bind:value={newEmail} disabled={showReauth} placeholder="new@example.com" required />
-          <Button type="submit" variant="secondary" disabled={loading || showReauth} className="w-full sm:w-auto">update email</Button>
+          <Input
+            type="email"
+            id="newEmail"
+            label="New Email Address"
+            bind:value={newEmail}
+            disabled={showReauth}
+            placeholder="new@example.com"
+            required
+          />
+          <Button type="submit" variant="secondary" disabled={loading || showReauth} className="w-full sm:w-auto"
+            >update email</Button
+          >
         </form>
       </div>
     </div>
@@ -144,9 +165,12 @@
     <div class="pb-20">
       <h2 class="text-xs font-bold uppercase tracking-widest text-rose-500 mb-4">danger zone</h2>
       <p class="text-xs text-gray-500 max-w-2xl mb-6">
-        Deleting your account is permanent. This removes your sign-in account; notifications and API keys are not deleted automatically.
+        Deleting your account is permanent. This removes your sign-in account; notifications and API keys are not deleted
+        automatically.
       </p>
-      <Button variant="danger" onclick={handleDeleteAccount} disabled={loading || showReauth} className="w-full sm:w-auto">delete account</Button>
+      <Button variant="danger" onclick={handleDeleteAccount} disabled={loading || showReauth} className="w-full sm:w-auto"
+        >delete account</Button
+      >
     </div>
   </div>
 </div>

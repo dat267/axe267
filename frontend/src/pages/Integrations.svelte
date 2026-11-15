@@ -1,12 +1,8 @@
-<script>
+<script lang="ts">
   import { onMount } from "svelte";
   import { auth } from "../lib/services/firebase";
-  import { authStore } from "../lib/stores/authStore.svelte.js";
-  import {
-    createApiKey,
-    subscribeApiKeys,
-    deleteApiKey,
-  } from "../lib/services/apiKeyService";
+  import { authStore } from "../lib/stores/authStore.svelte.ts";
+  import { createApiKey, subscribeApiKeys, deleteApiKey, type ApiKeyRecord } from "../lib/services/apiKeyService";
   import Button from "../lib/components/Button.svelte";
   import CodeBlock from "../lib/components/CodeBlock.svelte";
   import Input from "../lib/components/Input.svelte";
@@ -15,11 +11,31 @@
   import IntegrationScripts from "../lib/components/IntegrationScripts.svelte";
   import { NOTIFICATION_TYPES, NOTIFICATION_CATEGORIES } from "../lib/utils/constants";
 
+  interface NotificationForm {
+    type: string;
+    source: string;
+    title: string;
+    message: string;
+    category: string;
+  }
+
+  type FormField = keyof NotificationForm;
+
+  type AuthMethod = "bearer" | "apikey";
+
+  interface KeyState {
+    list: ApiKeyRecord[];
+    method: AuthMethod;
+    selected: string;
+    newName: string;
+    generated: string;
+  }
+
   let loading = $state(false);
   let error = $state("");
   let token = $state("");
 
-  let keyState = $state({
+  let keyState = $state<KeyState>({
     list: [],
     method: "bearer",
     selected: "",
@@ -27,7 +43,7 @@
     generated: "",
   });
 
-  let form = $state({
+  let form = $state<NotificationForm>({
     type: "info",
     source: "CLI",
     title: "Hello World",
@@ -38,15 +54,68 @@
   const types = NOTIFICATION_TYPES;
   const categories = NOTIFICATION_CATEGORIES;
 
-  const RANDOM_SAMPLES = [
-    { source: "CI/CD", title: "Build Success", message: "Production build completed in 2m 45s.", type: "success", category: "system" },
-    { source: "Auth Service", title: "New Sign-in", message: "New login detected from unusual IP: 192.168.1.1", type: "warning", category: "system" },
-    { source: "Mobile App", title: "Crash Report", message: "Uncaught ReferenceError on Home screen.", type: "error", category: "mobile" },
-    { source: "Database", title: "Daily Backup", message: "Cloud snapshot created successfully.", type: "success", category: "system" },
-    { source: "Desktop App", title: "Update Available", message: "Version 2.4.0 is ready to install.", type: "info", category: "desktop" },
-    { source: "S3 Storage", title: "Quota Reached", message: "Bucket storage exceeds 90% threshold.", type: "warning", category: "system" },
-    { source: "Stripe", title: "New Subscription", message: "Pro plan activated for user_249.", type: "success", category: "system" },
-    { source: "CLI Tool", title: "Task Failed", message: "Permission denied while writing to /var/log.", type: "error", category: "system" },
+  const AUTH_METHODS: { id: AuthMethod; label: string }[] = [
+    { id: "bearer", label: "Bearer Token" },
+    { id: "apikey", label: "API Key" },
+  ];
+
+  const RANDOM_SAMPLES: NotificationForm[] = [
+    {
+      source: "CI/CD",
+      title: "Build Success",
+      message: "Production build completed in 2m 45s.",
+      type: "success",
+      category: "system",
+    },
+    {
+      source: "Auth Service",
+      title: "New Sign-in",
+      message: "New login detected from unusual IP: 192.168.1.1",
+      type: "warning",
+      category: "system",
+    },
+    {
+      source: "Mobile App",
+      title: "Crash Report",
+      message: "Uncaught ReferenceError on Home screen.",
+      type: "error",
+      category: "mobile",
+    },
+    {
+      source: "Database",
+      title: "Daily Backup",
+      message: "Cloud snapshot created successfully.",
+      type: "success",
+      category: "system",
+    },
+    {
+      source: "Desktop App",
+      title: "Update Available",
+      message: "Version 2.4.0 is ready to install.",
+      type: "info",
+      category: "desktop",
+    },
+    {
+      source: "S3 Storage",
+      title: "Quota Reached",
+      message: "Bucket storage exceeds 90% threshold.",
+      type: "warning",
+      category: "system",
+    },
+    {
+      source: "Stripe",
+      title: "New Subscription",
+      message: "Pro plan activated for user_249.",
+      type: "success",
+      category: "system",
+    },
+    {
+      source: "CLI Tool",
+      title: "Task Failed",
+      message: "Permission denied while writing to /var/log.",
+      type: "error",
+      category: "system",
+    },
   ];
 
   function randomizeContent() {
@@ -59,7 +128,11 @@
   }
 
   const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID || "[PROJECT_ID_MISSING]";
-  const apiUrl = $derived(typeof window !== "undefined" ? `${window.location.origin}/api/notify` : `https://${projectId}.web.app/api/notify`);
+  const apiUrl = $derived(
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/notify`
+      : `https://${projectId}.web.app/api/notify`,
+  );
 
   const authHeader = $derived(
     keyState.method === "bearer"
@@ -68,9 +141,7 @@
   );
 
   const authHeaderValue = $derived(
-    keyState.method === "bearer"
-      ? `Bearer ${token || "[YOUR_TOKEN]"}`
-      : keyState.selected || "[YOUR_API_KEY]",
+    keyState.method === "bearer" ? `Bearer ${token || "[YOUR_TOKEN]"}` : keyState.selected || "[YOUR_API_KEY]",
   );
 
   const curlCommand = $derived(`curl -X POST "${apiUrl}" \\
@@ -78,7 +149,7 @@ ${authHeader} \\
 -H "Content-Type: application/json" \\
 -d ${shellSingleQuote(JSON.stringify(form, null, 2))}`);
 
-  function shellSingleQuote(value) {
+  function shellSingleQuote(value: string): string {
     return `'${value.replace(/'/g, "'\\''")}'`;
   }
 
@@ -102,11 +173,9 @@ ${authHeader} \\
 
   async function handleCreateKey() {
     const trimmed = keyState.newName.trim();
-    if (!trimmed || !authStore.user) return;
+    if (!trimmed || !authStore.user || !authStore.user.email) return;
 
-    if (
-      keyState.list.some((k) => k.name.toLowerCase() === trimmed.toLowerCase())
-    ) {
+    if (keyState.list.some((k) => k.name.toLowerCase() === trimmed.toLowerCase())) {
       error = `An API key named "${trimmed}" already exists.`;
       return;
     }
@@ -114,22 +183,18 @@ ${authHeader} \\
     loading = true;
     error = "";
     try {
-      const { key } = await createApiKey(
-        authStore.user.uid,
-        authStore.user.email,
-        trimmed,
-      );
+      const { key } = await createApiKey(authStore.user.uid, authStore.user.email, trimmed);
       keyState.generated = key;
       keyState.selected = key;
       keyState.newName = "";
     } catch (e) {
-      error = e.message || "Failed to create API key";
+      error = e instanceof Error ? e.message : "Failed to create API key";
     } finally {
       loading = false;
     }
   }
 
-  async function handleDeleteKey(id) {
+  async function handleDeleteKey(id: string) {
     if (!confirm("Are you sure you want to delete this API key?")) return;
     try {
       await deleteApiKey(id);
@@ -140,11 +205,9 @@ ${authHeader} \\
   }
 </script>
 
-{#snippet selectDropdown(id, label, options)}
+{#snippet selectDropdown(id: FormField, label: string, options: readonly string[])}
   <div>
-    <label
-      for={id}
-      class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1"
+    <label for={id} class="block text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1"
       >{label}</label
     >
     <select
@@ -169,7 +232,7 @@ ${authHeader} \\
       <div class="mb-8 flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-xs font-bold uppercase tracking-widest text-foreground">1. Authentication</h2>
         <div class="chip-group sm:w-auto">
-          {#each [{ id: "bearer", label: "Bearer Token" }, { id: "apikey", label: "API Key" }] as method (method.id)}
+          {#each AUTH_METHODS as method (method.id)}
             <button
               onclick={() => (keyState.method = method.id)}
               class="chip {keyState.method === method.id ? 'active' : 'inactive'} flex-1 sm:flex-none"
@@ -195,16 +258,12 @@ ${authHeader} \\
               </div>
               <div class="p-4">
                 <pre
-                  class="h-24 w-full break-all overflow-y-auto bg-transparent text-xs font-mono text-foreground resize-none m-0"
-                >{token || "Click 'Generate Token' below to view your current Bearer token."}</pre>
+                  class="h-24 w-full break-all overflow-y-auto bg-transparent text-xs font-mono text-foreground resize-none m-0">{token ||
+                    "Click 'Generate Token' below to view your current Bearer token."}</pre>
               </div>
             </div>
             <div class="flex">
-              <Button
-                onclick={refreshToken}
-                {loading}
-                className="w-full md:w-auto"
-              >
+              <Button onclick={refreshToken} {loading} className="w-full md:w-auto">
                 {token ? "Refresh Token" : "Generate Token"}
               </Button>
             </div>
@@ -232,16 +291,9 @@ ${authHeader} \\
                     class="min-w-0 grow rounded-md border border-emerald-500/30 bg-background px-3 py-2 text-xs font-mono text-foreground"
                     tabindex="-1"
                   />
-                  <CopyButton 
-                    text={keyState.generated} 
-                    className="bg-emerald-500/10"
-                  />
+                  <CopyButton text={keyState.generated} className="bg-emerald-500/10" />
                 </div>
-                <Button
-                  variant="secondary"
-                  className="py-2! w-full sm:w-auto"
-                  onclick={() => (keyState.generated = "")}
-                >
+                <Button variant="secondary" className="py-2! w-full sm:w-auto" onclick={() => (keyState.generated = "")}>
                   Done
                 </Button>
               </div>
@@ -253,9 +305,7 @@ ${authHeader} \\
           <div class="space-y-6">
             {#if keyState.list.length > 0}
               <div class="space-y-2">
-                <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                  Active Keys
-                </div>
+                <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500">Active Keys</div>
                 <div class="divide-y divide-border rounded-md border border-border bg-background">
                   {#each keyState.list as key (key.id || key.name)}
                     <div class="flex items-center justify-between gap-4 p-4">
@@ -264,7 +314,9 @@ ${authHeader} \\
                           {key.name}
                         </span>
                         <span class="text-[9px] font-bold uppercase tracking-widest text-gray-400">
-                          Created {key.createdAt?.toDate ? key.createdAt.toDate().toLocaleDateString() : "Just now"}
+                          Created {key.createdAt?.toDate
+                            ? key.createdAt.toDate().toLocaleDateString()
+                            : "Just now"}
                         </span>
                       </div>
                       <div class="flex shrink-0 items-center gap-4">
@@ -281,7 +333,9 @@ ${authHeader} \\
                             stroke="currentColor"
                             stroke-width="2.5"
                           >
-                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <path
+                              d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                            ></path>
                           </svg>
                         </button>
                       </div>
@@ -321,18 +375,8 @@ ${authHeader} \\
       <div class="grid grid-cols-1 gap-8 sm:grid-cols-2">
         {@render selectDropdown("type", "Notification Type", types)}
         {@render selectDropdown("category", "Target Category", categories)}
-        <Input
-          id="source"
-          label="Source"
-          bind:value={form.source}
-          placeholder="e.g. Ubuntu Server"
-        />
-        <Input
-          id="title"
-          label="Title"
-          bind:value={form.title}
-          placeholder="e.g. Backup Complete"
-        />
+        <Input id="source" label="Source" bind:value={form.source} placeholder="e.g. Ubuntu Server" />
+        <Input id="title" label="Title" bind:value={form.title} placeholder="e.g. Backup Complete" />
         <div class="sm:col-span-2">
           <Input
             id="message"
@@ -345,17 +389,11 @@ ${authHeader} \\
     </div>
 
     <div class="space-y-4">
-      <h2 class="text-xs font-bold uppercase tracking-widest text-foreground">3. Copy & Run Command</h2>
-      <p class="text-xs text-gray-500">
-        This command updates live as you change the fields above.
-      </p>
+      <h2 class="text-xs font-bold uppercase tracking-widest text-foreground">3. Copy &amp; Run Command</h2>
+      <p class="text-xs text-gray-500">This command updates live as you change the fields above.</p>
       <CodeBlock code={curlCommand} onCopy={randomizeContent} />
     </div>
 
-    <IntegrationScripts
-      {apiUrl}
-      {authHeader}
-      {authHeaderValue}
-    />
+    <IntegrationScripts {apiUrl} {authHeader} {authHeaderValue} />
   </section>
 </div>

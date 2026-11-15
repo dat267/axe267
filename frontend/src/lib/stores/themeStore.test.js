@@ -42,3 +42,19 @@ describe("themeStore", () => {
     expect(themeStore.darkMode).toBe(true);
   });
 });
+
+describe("themeStore without storage access", () => {
+  it("initializes and cycles the theme when localStorage throws", async () => {
+    const blocked = () => {
+      throw new DOMException("The operation is insecure.", "SecurityError");
+    };
+    vi.stubGlobal("localStorage", { getItem: vi.fn(blocked), setItem: vi.fn(blocked), removeItem: vi.fn() });
+
+    const { themeStore } = await import("./themeStore.svelte.js");
+
+    expect(themeStore.mode).toBe("auto");
+    expect(themeStore.darkMode).toBe(false);
+    expect(() => themeStore.cycleTheme()).not.toThrow();
+    expect(themeStore.mode).toBe("dark");
+  });
+});

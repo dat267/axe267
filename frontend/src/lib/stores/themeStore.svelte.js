@@ -1,3 +1,15 @@
+const THEME_MODES = ["light", "dark", "auto"];
+
+function readSavedMode() {
+  try {
+    const saved = localStorage.getItem("theme");
+    if (THEME_MODES.includes(saved)) return saved;
+  } catch {
+    // Storage unavailable (private mode, blocked site data): use the system theme.
+  }
+  return "auto";
+}
+
 class ThemeStore {
   #mode = $state("dark");
   #systemDark = $state(false);
@@ -8,8 +20,7 @@ class ThemeStore {
     if (typeof window !== "undefined") {
       this.#mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       this.#systemDark = this.#mediaQuery.matches;
-      const saved = localStorage.getItem("theme");
-      this.#mode = saved === "light" || saved === "dark" || saved === "auto" ? saved : "auto";
+      this.#mode = readSavedMode();
       if (this.#mode === "auto") {
         this.#listenToSystem();
       }
@@ -47,7 +58,11 @@ class ThemeStore {
   cycleTheme() {
     const next = { dark: "light", light: "auto", auto: "dark" };
     this.#mode = next[this.#mode];
-    localStorage.setItem("theme", this.#mode);
+    try {
+      localStorage.setItem("theme", this.#mode);
+    } catch {
+      // Non-essential preference; the theme still applies for this session.
+    }
     if (this.#mode === "auto") {
       this.#listenToSystem();
     } else {

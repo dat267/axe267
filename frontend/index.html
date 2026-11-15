@@ -7,7 +7,12 @@
     <title>AXE</title>
     <script>
       (function () {
-        const savedTheme = localStorage.getItem("theme");
+        var savedTheme = null;
+        try {
+          savedTheme = localStorage.getItem("theme");
+        } catch (e) {
+          // Storage unavailable (private mode, blocked site data): use the system theme.
+        }
         const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         const isDark = savedTheme === "dark" || (savedTheme !== "light" && prefersDark);
         if (isDark) {

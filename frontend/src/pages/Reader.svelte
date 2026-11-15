@@ -209,11 +209,15 @@
       await renderer.render(bookData, savedCfi);
     } catch (e) {
       console.warn("Initial display failed:", e);
-      try {
-        if (renderer?.rendition) await renderer.rendition.display();
-      } catch (e2) {
-        console.error("Fallback display failed:", e2);
+      if (!renderer?.rendition) {
         displayFailed = true;
+      } else {
+        try {
+          await renderer.rendition.display();
+        } catch (e2) {
+          console.error("Fallback display failed:", e2);
+          displayFailed = true;
+        }
       }
     } finally {
       isBookLoading = false;

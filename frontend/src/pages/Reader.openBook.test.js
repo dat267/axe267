@@ -143,3 +143,21 @@ describe("Reader.openBook", () => {
     await waitFor(() => expect(window.location.search).toBe(""));
   });
 });
+
+describe("Reader.openBook render failure", () => {
+  it("returns to the library when the book fails before a rendition exists", async () => {
+    mockGetDownloadURL.mockResolvedValueOnce("https://example.com/broken.epub");
+    loadBookData.mockResolvedValueOnce("not an epub");
+    const renderer = makeRenderer();
+    renderer.rendition = undefined;
+    renderer.render.mockRejectedValueOnce(new Error("Failed to open book"));
+    createBookRenderer.mockReturnValueOnce(renderer);
+
+    const user = userEvent.setup();
+    render(Reader);
+    await openFixtureBook(user);
+
+    await waitFor(() => expect(screen.queryByLabelText("Close reader")).not.toBeInTheDocument());
+    expect(await screen.findByRole("button", { name: /Opening fixture/ })).toBeInTheDocument();
+  });
+});

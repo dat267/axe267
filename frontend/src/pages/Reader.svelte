@@ -286,9 +286,9 @@
     return renderer.search(query, SEARCH_CONCURRENCY);
   }
 
-  async function jumpTo(target: string) {
-    if (!renderer) return;
-    await renderer.jumpTo(target);
+  async function jumpTo(target: string): Promise<boolean> {
+    if (!renderer) return false;
+    return renderer.jumpTo(target);
   }
 
   let isDeleting = $state(false);

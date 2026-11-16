@@ -262,6 +262,18 @@ describe("createBookRenderer", () => {
     expect(mockRendition.display).toHaveBeenCalledWith("epubcfi(/6/2)");
   });
 
+  it("jumpTo() reports whether the target was displayed", async () => {
+    const el = document.createElement("div");
+    const renderer = createBookRenderer(el, {});
+    await renderer.render(bookInput, null);
+
+    await expect(renderer.jumpTo("epubcfi(/6/2)")).resolves.toBe(true);
+    await expect(renderer.jumpTo("")).resolves.toBe(false);
+
+    mockRendition.display.mockRejectedValue(new Error("missing section"));
+    await expect(renderer.jumpTo("epubcfi(/6/999)")).resolves.toBe(false);
+  });
+
   it("destroy() cleans up book and rendition", async () => {
     const el = document.createElement("div");
     const renderer = createBookRenderer(el, {});

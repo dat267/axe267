@@ -45,7 +45,7 @@ export interface BookRenderer {
   applyTypography(settings?: TypographySettings): void;
   next(): void;
   prev(): void;
-  jumpTo(target: string): Promise<void>;
+  jumpTo(target: string): Promise<boolean>;
   search(query: string, concurrency?: number): Promise<EpubSearchResult[]>;
   generateLocations(title: string): Promise<void>;
   destroy(): void;
@@ -230,7 +230,7 @@ export function createBookRenderer(readerElement: HTMLElement, options: Renderer
      * Jump to a specific CFI or href target.
      */
     async jumpTo(target) {
-      if (!rendition || !target || !book) return;
+      if (!rendition || !target || !book) return false;
 
       const targetRendition = rendition;
       const tryDisplay = async (t: string): Promise<boolean> => {
@@ -242,13 +242,13 @@ export function createBookRenderer(readerElement: HTMLElement, options: Renderer
         }
       };
 
-      if (await tryDisplay(target)) return;
-      if (target.startsWith("/") && (await tryDisplay(target.substring(1)))) return;
+      if (await tryDisplay(target)) return true;
+      if (target.startsWith("/") && (await tryDisplay(target.substring(1)))) return true;
 
       const canonical = book.canonical(target);
       if (canonical && canonical !== target) {
-        if (await tryDisplay(canonical)) return;
-        if (canonical.startsWith("/") && (await tryDisplay(canonical.substring(1)))) return;
+        if (await tryDisplay(canonical)) return true;
+        if (canonical.startsWith("/") && (await tryDisplay(canonical.substring(1)))) return true;
       }
 
       try {
@@ -256,12 +256,13 @@ export function createBookRenderer(readerElement: HTMLElement, options: Renderer
         const spineMatch = book.spine.spineItems.find(
           (item) => item.href === cleanPath || item.href.endsWith(cleanPath) || cleanPath.endsWith(item.href),
         );
-        if (spineMatch && (await tryDisplay(spineMatch.cfi || spineMatch.href))) return;
+        if (spineMatch && (await tryDisplay(spineMatch.cfi || spineMatch.href))) return true;
       } catch (err) {
         console.warn("Spine fallback failed:", err);
       }
 
       console.error("All jump attempts failed for target:", target);
+      return false;
     },
 
     /**

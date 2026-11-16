@@ -244,3 +244,118 @@ describe("ReaderOverlay", () => {
     });
   });
 });
+
+describe("ReaderOverlay contents panel", () => {
+  const toc = [
+    { label: "Chapter 1", target: "epubcfi(/6/2)", level: 0 },
+    { label: "A Section With No Target", target: "", level: 1 },
+    { label: "Chapter 2", target: "epubcfi(/6/4)", level: 1 },
+  ];
+
+  it("closes the contents panel after a chapter is selected", async () => {
+    const user = userEvent.setup();
+    const onJumpTo = vi.fn();
+    render(ReaderOverlay, {
+      props: { currentBookName: "Test", toc, onClose: vi.fn(), onJumpTo },
+    });
+
+    await user.click(screen.getByLabelText("Table of contents"));
+    await user.click(screen.getByRole("button", { name: "Chapter 1" }));
+    await tick();
+
+    expect(onJumpTo).toHaveBeenCalledWith("epubcfi(/6/2)");
+    expect(screen.queryByText("contents")).not.toBeInTheDocument();
+  });
+
+  it("marks the selected chapter busy while the jump is in flight", async () => {
+    const user = userEvent.setup();
+    let resolveJump!: (value: void) => void;
+    const onJumpTo = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveJump = resolve;
+        }),
+    );
+    render(ReaderOverlay, {
+      props: { currentBookName: "Test", toc, onClose: vi.fn(), onJumpTo },
+    });
+
+    await user.click(screen.getByLabelText("Table of contents"));
+    const chapter = screen.getByRole("button", { name: "Chapter 1" });
+    await user.click(chapter);
+
+    expect(chapter).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("contents")).toBeInTheDocument();
+
+    resolveJump();
+    await vi.waitFor(() => expect(screen.queryByText("contents")).not.toBeInTheDocument());
+  });
+
+  it("keeps the panel open and reports a failed jump", async () => {
+    const user = userEvent.setup();
+    const onJumpTo = vi.fn().mockResolvedValue(false);
+    render(ReaderOverlay, {
+      props: { currentBookName: "Test", toc, onClose: vi.fn(), onJumpTo },
+    });
+
+    await user.click(screen.getByLabelText("Table of contents"));
+    await user.click(screen.getByRole("button", { name: "Chapter 1" }));
+    await tick();
+
+    expect(screen.getByText("contents")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not open that chapter");
+  });
+
+  it("does not present entries without a target as clickable", async () => {
+    const user = userEvent.setup();
+    const onJumpTo = vi.fn();
+    render(ReaderOverlay, {
+      props: { currentBookName: "Test", toc, onClose: vi.fn(), onJumpTo },
+    });
+
+    await user.click(screen.getByLabelText("Table of contents"));
+    const group = screen.getByText("A Section With No Target");
+    expect(screen.queryByRole("button", { name: "A Section With No Target" })).not.toBeInTheDocument();
+    expect(group).toHaveAttribute("aria-disabled", "true");
+
+    await user.click(group);
+    expect(onJumpTo).not.toHaveBeenCalled();
+  });
+
+  it("labels the close control, moves focus into the panel, and closes on Escape", async () => {
+    const user = userEvent.setup();
+    render(ReaderOverlay, {
+      props: { currentBookName: "Test", toc, onClose: vi.fn(), onJumpTo: vi.fn() },
+    });
+
+    const toggle = screen.getByLabelText("Table of contents");
+    await user.click(toggle);
+    await tick();
+    expect(screen.getByLabelText("Close contents")).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByText("contents")).not.toBeInTheDocument();
+    expect(toggle).toHaveFocus();
+  });
+
+  it("closes the contents panel from its close button", async () => {
+    const user = userEvent.setup();
+    render(ReaderOverlay, {
+      props: { currentBookName: "Test", toc, onClose: vi.fn(), onJumpTo: vi.fn() },
+    });
+
+    await user.click(screen.getByLabelText("Table of contents"));
+    await user.click(screen.getByLabelText("Close contents"));
+    expect(screen.queryByText("contents")).not.toBeInTheDocument();
+  });
+
+  it("shows an empty state when the book has no contents", async () => {
+    const user = userEvent.setup();
+    render(ReaderOverlay, {
+      props: { currentBookName: "Test", toc: [], onClose: vi.fn() },
+    });
+
+    await user.click(screen.getByLabelText("Table of contents"));
+    expect(screen.getByText("No contents available.")).toBeInTheDocument();
+  });
+});
